@@ -11,7 +11,7 @@ INCLUDES = -I./bullet/include  -I./Irrlicht/include
 LFLAGS = -L./bullet/lib  -L./Irrlicht/lib 
 
 
-LIBS = -lIrrlicht -lGL -lXxf86vm -lXext -lX11 -lXcursor -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath 
+LIBS = -lIrrlicht -lGL -lXxf86vm -lX11 -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath 
 
 # define the C++ source files
 SRCS = main.cpp
@@ -42,7 +42,7 @@ game.o: main.cpp
 # (see the gnu make manual section about automatic variables)
 
 clean:
-	$(RM) *.o *~ $(MAIN)
+	$(RM) *.o *~ game
 
 depend: $(SRCS)
 	makedepend $(INCLUDES) $^
