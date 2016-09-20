@@ -18,6 +18,7 @@ void CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScal
 static void UpdatePhysics(u32 TDeltaTime);
 static void UpdateRender(btRigidBody *TObject);
 static void ClearObjects();
+void shoot();
 
 // Globals
 static bool Done = false;
@@ -33,7 +34,7 @@ static list<btRigidBody *> Objects;
 static IMeshSceneNode* Ship;
 static ICameraSceneNode* Camera;
 static btRigidBody* btShip;
-static u32 velocity;
+static float velocity = 0.0f;
 
 // Event receiver
 class EventReceiverClass : public IEventReceiver  {
@@ -43,12 +44,12 @@ public:
 	virtual bool OnEvent(const SEvent &TEvent) {
 
 		if(TEvent.EventType == EET_KEY_INPUT_EVENT && !TEvent.KeyInput.PressedDown) {
-			int torque = 100;
+			int torque = 500;
 			switch(TEvent.KeyInput.Key) {
 				case KEY_ESCAPE:
 					Done = true;
 				break;
-				case KEY_KEY_X:
+				case KEY_KEY_C:
 					CreateStartScene();
 				break;
 				case KEY_KEY_W:
@@ -67,14 +68,14 @@ public:
 				break;
 				case KEY_KEY_A:
 				{
-					btVector3 worldTorque = btShip->getWorldTransform().getBasis() * btVector3(0,-torque,0);
+					btVector3 worldTorque = btShip->getWorldTransform().getBasis() * btVector3(0,-torque/2,0);
 					btShip->activate();
 					btShip->applyTorque(worldTorque);
 				}
 				break;
 				case KEY_KEY_D:
 				{
-					btVector3 worldTorque = btShip->getWorldTransform().getBasis() * btVector3(0,torque,0);
+					btVector3 worldTorque = btShip->getWorldTransform().getBasis() * btVector3(0,torque/2,0);
 					btShip->activate();
 					btShip->applyTorque(worldTorque);
 				}
@@ -93,19 +94,19 @@ public:
 					btShip->applyTorque(worldTorque);
 				}
 				break;
-				case KEY_CONTROL:
+				case KEY_LSHIFT:
 				{
-					velocity -= 100;
+					velocity -= 1;
 				}
 				break;
-				case KEY_SHIFT:
+				case KEY_LCONTROL:
 				{
-					velocity += 100;
+					velocity += 1;
 				}
 				break;
 				case KEY_SPACE:
 				{
-					
+					shoot();
 				}
 				break;
 				default:
@@ -147,9 +148,11 @@ int main() {
 		DeltaTime = irrTimer->getTime() - TimeStamp;
 		TimeStamp = irrTimer->getTime();
 		
-		if(velocity < 0) velocity = 0;
-		//btShip->activate();
-		//btShip->applyCentralForce(btShip->getWorldTransform().getBasis() * btVector3( 0.f, 0.f,  velocity ));
+		
+		//btShip->setLinearVelocity(btShip->getWorldTransform().getBasis() * (btVector3( 0.f, 0.f, velocity ) + btShip->getLinearVelocity()));
+		//btShip->applyForce(btShip->getWorldTransform().getBasis() * btVector3( 0.f, 0.f, 0.0f), btShip->getCenterOfMassTransform().getOrigin());
+		
+   		Camera->setTarget(Ship->getPosition());
 		
 		UpdatePhysics(DeltaTime);
 
@@ -158,9 +161,9 @@ int main() {
 		irrScene->drawAll();
 		irrGUI->drawAll();
 		irrDriver->endScene();
-		Camera->setTarget(Ship->getPosition());
 		
 		
+				
 		irrDevice->run();
 	}
 
@@ -198,9 +201,9 @@ void CreateStartScene()
 	irrScene->setAmbientLight(video::SColorf(0.3,0.3,0.3,1));
 	
 	ClearObjects();
-	velocity = 100;
 	//ground
-	CreateBox(btVector3(0.0f, -500.0f, -0.5f), vector3df(2000.0f, 0.2f, 2000.0f), 0.0f);
+	CreateBox(btVector3(0.0f, -500.0f, -0.5f), vector3df(20000.0f, 0.2f, 20000.0f), 0.0f);
+	//position, size, mass
 	CreateShip(btVector3(0.0f, 2.0f, 0.0f), core::vector3df(9.0f, 3.0f, 11.0f), 5.5f);
 
 	irrDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
@@ -223,7 +226,8 @@ void CreateStartScene()
 	Camera->setParent(Ship);
 	Camera->bindTargetAndRotation(1);
 	
-	btShip->setGravity(btVector3(0,0,0));
+	Camera->setFarValue(10000);
+	
 
 }
 
@@ -268,6 +272,8 @@ btShip = RigidBody;
 Ship = Node;
 }
 
+
+
 // Create a box rigid body
 void CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScalar TMass) {
 
@@ -303,6 +309,47 @@ void CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScal
 	// Add it to the world
 	World->addRigidBody(RigidBody);
 	Objects.push_back(RigidBody);
+}
+
+void shoot()
+{
+	///bullet size
+	scene::ISceneNode *Node = irrScene->addSphereSceneNode(0.20f,32);
+	Node->setMaterialFlag(video::EMF_LIGHTING, 1);
+	Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
+	Node->setMaterialTexture(0, irrDriver->getTexture("media/ice0.jpg"));
+	
+	// Set the initial position of the object
+	btTransform Transform;
+	Transform.setIdentity();
+	
+	vector3df pos = Ship->getPosition();
+	Transform.setOrigin(btShip->getCenterOfMassPosition() + btShip->getWorldTransform().getBasis() * btVector3(0,0,-10));
+	
+	// Give it a default MotionState
+	btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
+	
+	// Create the shape/hitbox
+	btCollisionShape *Shape = new btSphereShape(0.2f);
+	
+	// Add mass
+	btVector3 LocalInertia;
+	Shape->calculateLocalInertia(1.0f, LocalInertia);
+
+	// Create the rigid body object
+	btRigidBody *bullet = new btRigidBody(1.0f, MotionState, Shape, LocalInertia);
+	
+	//speed
+	bullet->applyImpulse(btShip->getWorldTransform().getBasis() * btVector3(0,0,-500),btShip->getCenterOfMassPosition());
+
+	// Store a pointer to the irrlicht node so we can update it later
+	bullet->setUserPointer((void *)(Node));
+
+
+	// Add it to the world
+	World->addRigidBody(bullet);
+	Objects.push_back(bullet);
+	
 }
 
 
