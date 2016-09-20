@@ -205,12 +205,12 @@ void CreateStartScene()
 
 	irrDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
 	ISceneNode* skybox = irrScene->addSkyBoxSceneNode(
-        irrDriver->getTexture("./src/skybox/nevada_up.tga"),
-        irrDriver->getTexture("./src/skybox/nevada_dn.tga"),
-        irrDriver->getTexture("./src/skybox/nevada_rt.tga"), //
-        irrDriver->getTexture("./src/skybox/nevada_lf.tga"),
-        irrDriver->getTexture("./src/skybox/nevada_ft.tga"),//
-        irrDriver->getTexture("./src/skybox/nevada_bk.tga")
+        irrDriver->getTexture("./media/skybox/nevada_up.tga"),
+        irrDriver->getTexture("./media/skybox/nevada_dn.tga"),
+        irrDriver->getTexture("./media/skybox/nevada_rt.tga"), //
+        irrDriver->getTexture("./media/skybox/nevada_lf.tga"),
+        irrDriver->getTexture("./media/skybox/nevada_ft.tga"),//
+        irrDriver->getTexture("./media/skybox/nevada_bk.tga")
         
         );
     irrDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
@@ -231,7 +231,7 @@ void CreateStartScene()
 
 void CreateShip(const btVector3 &TPosition, const core::vector3df &TScale, btScalar TMass) 
 {
-	IMesh* mesh = irrScene->getMesh("src/xwing.3ds");
+	IMesh* mesh = irrScene->getMesh("media/xwing.3ds");
 	irrScene->getMeshManipulator()->scale(mesh,core::vector3df(2.6,2.6,2.6));
 	IMeshSceneNode* Node = irrScene->addMeshSceneNode( mesh );
 	Node->setMaterialType(EMT_SOLID);
@@ -276,7 +276,7 @@ void CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScal
 	Node->setScale(TScale);
 	Node->setMaterialFlag(video::EMF_LIGHTING, 1);
 	Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
-	Node->setMaterialTexture(0, irrDriver->getTexture("src/rust0.jpg"));
+	Node->setMaterialTexture(0, irrDriver->getTexture("media/rust0.jpg"));
 
 	// Set the initial position of the object
 	btTransform Transform;

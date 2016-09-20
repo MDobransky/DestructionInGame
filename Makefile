@@ -5,7 +5,7 @@ CC = g++
 CFLAGS = -Wall
 
 
-INCLUDES = -I./bullet/include  -I./Irrlicht/include
+INCLUDES = -I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/LinearMath
 
 
 LFLAGS = -L./bullet/lib  -L./Irrlicht/lib 
