@@ -96,12 +96,14 @@ public:
 				break;
 				case KEY_LSHIFT:
 				{
-					velocity -= 1;
+					velocity -= 10;
+					if(velocity < -100) velocity = -100;
 				}
 				break;
 				case KEY_LCONTROL:
 				{
-					velocity += 1;
+					velocity += 10;
+					if(velocity > 0) velocity = 0;
 				}
 				break;
 				case KEY_SPACE:
@@ -141,6 +143,7 @@ int main() {
 	World = new btDiscreteDynamicsWorld(Dispatcher, BroadPhase, Solver, CollisionConfiguration);
 
 	CreateStartScene();
+	
 	// Main loop
 	u32 TimeStamp = irrTimer->getTime(), DeltaTime = 0;
 	while(!Done) {
@@ -148,10 +151,8 @@ int main() {
 		DeltaTime = irrTimer->getTime() - TimeStamp;
 		TimeStamp = irrTimer->getTime();
 		
-		
-		//btShip->setLinearVelocity(btShip->getWorldTransform().getBasis() * (btVector3( 0.f, 0.f, velocity ) + btShip->getLinearVelocity()));
-		//btShip->applyForce(btShip->getWorldTransform().getBasis() * btVector3( 0.f, 0.f, 0.0f), btShip->getCenterOfMassTransform().getOrigin());
-		
+		btShip->setLinearVelocity(btShip->getWorldTransform().getBasis() * (btVector3( 0.f, -9.8f, velocity )));
+
    		Camera->setTarget(Ship->getPosition());
 		
 		UpdatePhysics(DeltaTime);
@@ -197,7 +198,7 @@ void UpdatePhysics(u32 TDeltaTime)
 void CreateStartScene() 
 {
 		// Create the initial scene
-	irrScene->addLightSceneNode(0, core::vector3df(0, 300, 0), SColorf(4, 4, 4, 1));
+	ILightSceneNode * light = irrScene->addLightSceneNode(0, core::vector3df(0, 3000, 0), SColorf(4, 4, 4, 1),10000);
 	irrScene->setAmbientLight(video::SColorf(0.3,0.3,0.3,1));
 	
 	ClearObjects();
@@ -226,7 +227,9 @@ void CreateStartScene()
 	Camera->setParent(Ship);
 	Camera->bindTargetAndRotation(1);
 	
-	Camera->setFarValue(10000);
+	Camera->setFarValue(100000);
+	
+	
 	
 
 }
@@ -240,7 +243,7 @@ void CreateShip(const btVector3 &TPosition, const core::vector3df &TScale, btSca
 	IMeshSceneNode* Node = irrScene->addMeshSceneNode( mesh );
 	Node->setMaterialType(EMT_SOLID);
 	Node->setMaterialFlag(EMF_LIGHTING, 1);
-	Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+	//Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
 	// Set the initial position of the object
 	btTransform Transform;
@@ -324,7 +327,7 @@ void shoot()
 	Transform.setIdentity();
 	
 	vector3df pos = Ship->getPosition();
-	Transform.setOrigin(btShip->getCenterOfMassPosition() + btShip->getWorldTransform().getBasis() * btVector3(0,0,-10));
+	Transform.setOrigin(btShip->getCenterOfMassPosition() + btShip->getWorldTransform().getBasis() * btVector3(0,0,-6));
 	
 	// Give it a default MotionState
 	btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
@@ -340,7 +343,7 @@ void shoot()
 	btRigidBody *bullet = new btRigidBody(1.0f, MotionState, Shape, LocalInertia);
 	
 	//speed
-	bullet->applyImpulse(btShip->getWorldTransform().getBasis() * btVector3(0,0,-500),btShip->getCenterOfMassPosition());
+	bullet->applyImpulse(btShip->getWorldTransform().getBasis() * btVector3(0,0,-1000),btShip->getCenterOfMassPosition());
 
 	// Store a pointer to the irrlicht node so we can update it later
 	bullet->setUserPointer((void *)(Node));
