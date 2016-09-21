@@ -30,11 +30,12 @@ SRCS = main.cpp
 
 .PHONY: depend clean
 
-game: game.o
-	g++ $(CFLAGS) -o game main.o $(LFLAGS) $(LIBS) 
-
-game.o: main.cpp
-	g++ $(CFLAGS) $(INCLUDES) -c main.cpp 
+game: game.o main.o
+	g++ $(CFLAGS) -o game game.o main.o $(LFLAGS) $(LIBS) 
+game.o: game.cpp
+	g++ $(CFLAGS) $(INCLUDES) -c game.cpp 
+main.o: main.cpp
+	g++ $(CFLAGS) $(INCLUDES) -c main.cpp
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
