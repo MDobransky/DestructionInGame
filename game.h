@@ -26,7 +26,7 @@ private:
     void UpdatePhysics(u32 TDeltaTime);
     void UpdateRender(btRigidBody *TObject);
     void ClearObjects();
-    void shoot();
+    void Shoot();
 
 
     bool Done;
@@ -42,92 +42,87 @@ private:
     btRigidBody* btShip;
     float velocity;
 
-    class EventReceiverClass : public IEventReceiver
+};
+
+class EventReceiverClass : public IEventReceiver
+{
+
+public:
+    game * g;
+    virtual bool OnEvent(const SEvent &TEvent)
     {
 
-    public:
-        game * g;
-        virtual bool OnEvent(const SEvent &TEvent) {
+        if(TEvent.EventType == EET_KEY_INPUT_EVENT && !TEvent.KeyInput.PressedDown)
+        {
+            int torque = 500;
+            btVector3 torqueVec(0,0,0);
 
-            if(TEvent.EventType == EET_KEY_INPUT_EVENT && !TEvent.KeyInput.PressedDown) {
-                int torque = 500;
-                switch(TEvent.KeyInput.Key) {
-                    case KEY_ESCAPE:
-                        g->Done = true;
-                    break;
-                    case KEY_KEY_C:
-                        g->CreateStartScene();
-                    break;
-                    case KEY_KEY_W:
-                    {
-                        btVector3 worldTorque = g->btShip->getWorldTransform().getBasis() * btVector3(-torque,0,0);
-                        g->btShip->activate();
-                        g->btShip->applyTorque(worldTorque);
-                    }
-                    break;
-                    case KEY_KEY_S:
-                    {
-                        btVector3 worldTorque = g->btShip->getWorldTransform().getBasis() * btVector3(torque,0,0);
-                        g->btShip->activate();
-                        g->btShip->applyTorque(worldTorque);
-                    }
-                    break;
-                    case KEY_KEY_A:
-                    {
-                        btVector3 worldTorque = g->btShip->getWorldTransform().getBasis() * btVector3(0,-torque/2,0);
-                        g->btShip->activate();
-                        g->btShip->applyTorque(worldTorque);
-                    }
-                    break;
-                    case KEY_KEY_D:
-                    {
-                        btVector3 worldTorque = g->btShip->getWorldTransform().getBasis() * btVector3(0,torque/2,0);
-                        g->btShip->activate();
-                        g->btShip->applyTorque(worldTorque);
-                    }
-                    break;
-                    case KEY_KEY_Q:
-                    {
-                        btVector3 worldTorque = g->btShip->getWorldTransform().getBasis() * btVector3(0,0,-torque);
-                        g->btShip->activate();
-                        g->btShip->applyTorque(worldTorque);
-                    }
-                    break;
-                    case KEY_KEY_E:
-                    {
-                        btVector3 worldTorque = g->btShip->getWorldTransform().getBasis() * btVector3(0,0,torque);
-                        g->btShip->activate();
-                        g->btShip->applyTorque(worldTorque);
-                    }
-                    break;
-                    case KEY_LSHIFT:
-                    {
-                        g->velocity -= 10;
-                        if(g->velocity < -100) g->velocity = -100;
-                    }
-                    break;
-                    case KEY_LCONTROL:
-                    {
-                        g->velocity += 10;
-                        if(g->velocity > 0) g->velocity = 0;
-                    }
-                    break;
-                    case KEY_SPACE:
-                    {
-                        g->shoot();
-                    }
-                    break;
-                    default:
-                        return false;
-                    break;
+            switch(TEvent.KeyInput.Key)
+            {
+                case KEY_ESCAPE:
+                    g->Done = true;
+                break;
+                case KEY_KEY_C:
+                    g->CreateStartScene();
+                break;
+                case KEY_KEY_W:
+                {
+                    torqueVec = btVector3(-torque,0,0);
                 }
-
-                return true;
+                break;
+                case KEY_KEY_S:
+                {
+                    torqueVec = btVector3(torque,0,0);
+                }
+                break;
+                case KEY_KEY_A:
+                {
+                    torqueVec = btVector3(0,-torque/2,0);
+                }
+                break;
+                case KEY_KEY_D:
+                {
+                    torqueVec = btVector3(0,torque/2,0);
+                }
+                break;
+                case KEY_KEY_Q:
+                {
+                    torqueVec = btVector3(0,0,-torque);
+                }
+                break;
+                case KEY_KEY_E:
+                {
+                    torqueVec = btVector3(0,0,torque);
+                }
+                break;
+                case KEY_LSHIFT:
+                {
+                    g->velocity -= 10;
+                    if(g->velocity < -100) g->velocity = -100;
+                }
+                break;
+                case KEY_LCONTROL:
+                {
+                    g->velocity += 10;
+                    if(g->velocity > 0) g->velocity = 0;
+                }
+                break;
+                case KEY_SPACE:
+                {
+                    g->Shoot();
+                }
+                break;
+                default:
+                    return false;
+                break;
             }
-            return false;
-        }
-    };
+            //apply the effect of WASDQE
+            g->btShip->applyTorque(g->btShip->getWorldTransform().getBasis() * torqueVec);
 
+            return true;
+        }
+        return false;
+    }
 };
 
 

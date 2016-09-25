@@ -78,35 +78,31 @@ void game::run()
         irrDevice->drop();
 }
 
-
-
-
-// Creates a base box
 void  game::CreateStartScene()
 {
-        // Create the initial scene
-    irrScene->addLightSceneNode(0, core::vector3df(0, 3000, 0), SColorf(4, 4, 4, 1),10000);
+    // Create the initial scene
+    irrScene->addLightSceneNode(0, core::vector3df(0, 3000, 0), SColorf(4, 4, 4, 1),1000);
     irrScene->setAmbientLight(video::SColorf(0.3,0.3,0.3,1));
 
     ClearObjects();
     //ground
-    CreateBox(btVector3(0.0f, -500.0f, -0.5f), vector3df(20000.0f, 0.2f, 20000.0f), 0.0f);
+    //CreateBox(btVector3(0.0f, -500.0f, -0.5f), vector3df(20000.0f, 0.2f, 20000.0f), 0.0f);
     //position, size, mass
     CreateShip(btVector3(0.0f, 2.0f, 0.0f));
 
+    //skybox
     irrDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
     irrScene->addSkyBoxSceneNode(
         irrDriver->getTexture("./media/skybox/nevada_up.tga"),
         irrDriver->getTexture("./media/skybox/nevada_dn.tga"),
-        irrDriver->getTexture("./media/skybox/nevada_rt.tga"), //
+        irrDriver->getTexture("./media/skybox/nevada_rt.tga"),
         irrDriver->getTexture("./media/skybox/nevada_lf.tga"),
-        irrDriver->getTexture("./media/skybox/nevada_ft.tga"),//
+        irrDriver->getTexture("./media/skybox/nevada_ft.tga"),
         irrDriver->getTexture("./media/skybox/nevada_bk.tga")
-
         );
     irrDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
 
-
+    //camera
     Camera= irrScene->addCameraSceneNode();
     btVector3 trans = btShip->getWorldTransform().getBasis() * btVector3(0,3,+10);
     Camera->setPosition(vector3df(trans.getX(),trans.getY(),trans.getZ()));
@@ -114,8 +110,22 @@ void  game::CreateStartScene()
     Camera->setParent(IShip);
     Camera->bindTargetAndRotation(1);
 
+    //rendered distance
     Camera->setFarValue(100000);
+/*
+    //terrain
+    scene::ITerrainSceneNode* terrain = irrScene->addTerrainSceneNode(
+          "./media/terrain-heightmap.bmp",0,-1,core::vector3df(0,-20,0));
 
+    terrain->setScale(core::vector3df(80, 8.8f, 80));
+    terrain->setMaterialFlag(video::EMF_LIGHTING, false);
+
+    terrain->setMaterialTexture(0, irrDriver->getTexture("./media/terrain-texture.jpg"));
+    terrain->setMaterialTexture(1, irrDriver->getTexture("./media/detailmap3.jpg"));
+
+    terrain->setMaterialType(video::EMT_DETAIL_MAP);
+    terrain->scaleTexture(1.0f, 20.0f);
+*/
 }
 
 
@@ -138,10 +148,11 @@ void  game::CreateShip(const btVector3 &TPosition)
     Transform.setIdentity();
     Transform.setOrigin(TPosition);
 
-
     btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
 
     // Create the shape
+    //TODO \/ for better hitboxes
+    //https://studiofreya.com/game-maker/bullet-physics/from-irrlicht-mesh-to-bullet-physics-mesh/
     btVector3 HalfExtents(Size.X*0.5, Size.Y*0.5 , Size.Z*0.5);
     btCollisionShape *Shape = new btBoxShape(HalfExtents);
 
@@ -202,7 +213,7 @@ void  game::CreateBox(const btVector3 &TPosition, const core::vector3df &TScale,
     Objects.push_back(RigidBody);
 }
 
-void  game::shoot()
+void  game::Shoot()
 {
     ///bullet size
     scene::IMeshSceneNode *Node = irrScene->addSphereSceneNode(0.5f,32);
