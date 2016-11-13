@@ -2,7 +2,7 @@
 CC = g++
 
 # define any compile-time flags
-CFLAGS = -Wall
+CFLAGS = -Wall -std=c++14 -pedantic
 
 
 INCLUDES = -I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/LinearMath
@@ -11,10 +11,10 @@ INCLUDES = -I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/
 LFLAGS = -L./bullet/lib  -L./Irrlicht/lib 
 
 
-LIBS = -lIrrlicht -lGL -lXxf86vm -lX11 -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath 
+LIBS = -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath 
 
 # define the C++ source files
-SRCS = main.cpp
+SRCS = src/main.cpp
 
 # define the C++ object files 
 #
@@ -30,12 +30,12 @@ SRCS = main.cpp
 
 .PHONY: depend clean
 
-game: game.o main.o
-	g++ $(CFLAGS) -o game game.o main.o $(LFLAGS) $(LIBS) 
-game.o: game.cpp
-	g++ $(CFLAGS) $(INCLUDES) -c game.cpp 
-main.o: main.cpp
-	g++ $(CFLAGS) $(INCLUDES) -c main.cpp
+build/game: build/game.o build/main.o
+	g++ $(CFLAGS) -o build/game build/game.o build/main.o $(LFLAGS) $(LIBS) 
+build/game.o: src/Game.cpp
+	g++ $(CFLAGS) $(INCLUDES) -c src/Game.cpp -o build/game.o
+build/main.o: src/main.cpp
+	g++ $(CFLAGS) $(INCLUDES) -c src/main.cpp -o build/main.o
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
@@ -43,7 +43,7 @@ main.o: main.cpp
 # (see the gnu make manual section about automatic variables)
 
 clean:
-	$(RM) *.o *~ game
+	$(RM) build/*.o build/game
 
 depend: $(SRCS)
 	makedepend $(INCLUDES) $^
