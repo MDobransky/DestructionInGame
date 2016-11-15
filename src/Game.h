@@ -49,7 +49,7 @@ public:
 
     static Game& Instance()
     {
-        static Game instance; // Guaranteed to be destroyed. Instantiated on first use.
+        static Game instance;
         return instance;
     }
 
@@ -57,9 +57,6 @@ public:
     Game& operator=(const Game&) = delete;
 
 };
-
-
-
 
 
 #endif // GAME_H

@@ -6,25 +6,9 @@
 //singleton
 class EventReceiver : public IEventReceiver
 {
-private:
-    static EventReceiver* p_instance;
+public:
     EventReceiver() {};
     ~EventReceiver() {};
-
-public:
-
-    static EventReceiver* Instance()
-    {
-        if (!p_instance)
-            p_instance = new EventReceiver();
-        return p_instance;
-    }
-
-    static void RemoveInstance()
-    {
-        delete p_instance;
-        p_instance = nullptr;
-    }
 
     EventReceiver(const EventReceiver&) = delete;
     EventReceiver& operator=(const EventReceiver&) = delete;
@@ -104,7 +88,5 @@ public:
         return false;
     }
 };
-
-EventReceiver* EventReceiver::p_instance = nullptr;
 
 #endif

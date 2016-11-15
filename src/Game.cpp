@@ -21,15 +21,14 @@ Game::Game()
 
 Game::~Game()
 {
-    EventReceiver::RemoveInstance();
 }
 
 void Game::Run()
 {
         Done = false;
     // Initialize irrlicht
-
-        irrDevice = createDevice(video::EDT_OPENGL, dimension2d<u32>(1600,900), 32, false, false, false, EventReceiver::Instance());
+        IEventReceiver* e = new EventReceiver();
+        irrDevice = createDevice(video::EDT_OPENGL, dimension2d<u32>(1600,900), 32, false, false, false, e);
         irrGUI = irrDevice->getGUIEnvironment();
         irrTimer = irrDevice->getTimer();
         irrScene = irrDevice->getSceneManager();
@@ -113,7 +112,7 @@ void  Game::CreateStartScene()
     Camera->bindTargetAndRotation(1);
 
     //rendered distance
-    Camera->setFarValue(100000);
+    Camera->setFarValue(1000);
 /*
     //terrain
     scene::ITerrainSceneNode* terrain = irrScene->addTerrainSceneNode(

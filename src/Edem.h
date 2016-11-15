@@ -13,6 +13,8 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
+namespace gg {
+
 //Extended Distinct Element Method' Element
 class EDEM : btRigidBody
 {
@@ -25,5 +27,7 @@ private:
 public:
 
 };
+
+}
 
 #endif
