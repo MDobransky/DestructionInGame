@@ -1,11 +1,11 @@
 #include "Game.h"
 
-int a;
-
 int main()
 {
-        Game::Instance().Run();
-        a = 3;
+        gg::Game g;
+        g.Run();
+
+
 return 0;
 }
 

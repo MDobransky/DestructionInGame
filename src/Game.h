@@ -1,9 +1,14 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include "Object.h"
+#include "EventReceiver.h"
+
+
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
 #include <btBulletDynamicsCommon.h>
+
 #include <cstdlib>
 
 using namespace irr;
@@ -12,6 +17,8 @@ using namespace scene;
 using namespace video;
 using namespace io;
 using namespace gui;
+
+namespace gg {
 
 class Game
 {
@@ -26,10 +33,10 @@ private:
     void ClearObjects();
     void Shoot();
 
+    IrrlichtDevice *irrDevice;
+    btDiscreteDynamicsWorld *World;
 
     bool Done;
-    btDiscreteDynamicsWorld *World;
-    IrrlichtDevice *irrDevice;
     IVideoDriver *irrDriver;
     ISceneManager *irrScene;
     IGUIEnvironment *irrGUI;
@@ -40,23 +47,18 @@ private:
     btRigidBody* btShip;
     float velocity;
 
-    ~Game();
-    Game();
+
 
 public:
 
     void Run();
-
-    static Game& Instance()
-    {
-        static Game instance;
-        return instance;
-    }
-
+    ~Game();
+    Game();
     Game(const Game&) = delete;
     Game& operator=(const Game&) = delete;
 
 };
 
+}
 
 #endif // GAME_H

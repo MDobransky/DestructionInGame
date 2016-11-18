@@ -1,11 +1,6 @@
 #include "Game.h"
-#include "EventReceiver.h"
-#include "Object.h"
+#include <iostream>
 
-#include <irrlicht.h>
-#include <btBulletCollisionCommon.h>
-#include <btBulletDynamicsCommon.h>
-#include <cstdlib>
 
 using namespace irr;
 using namespace core;
@@ -15,27 +10,25 @@ using namespace io;
 using namespace gui;
 
 
-Game::Game()
+gg::Game::Game()
 {
 }
 
-Game::~Game()
+gg::Game::~Game()
 {
 }
 
-void Game::Run()
+void gg::Game::Run()
 {
         Done = false;
     // Initialize irrlicht
-        IEventReceiver* e = new EventReceiver();
-        irrDevice = createDevice(video::EDT_OPENGL, dimension2d<u32>(1600,900), 32, false, false, false, e);
+        irrDevice = createDevice(video::EDT_OPENGL, dimension2d<u32>(1600,900), 32, false, false, false, new EventReceiver(this));
         irrGUI = irrDevice->getGUIEnvironment();
         irrTimer = irrDevice->getTimer();
         irrScene = irrDevice->getSceneManager();
         irrDriver = irrDevice->getVideoDriver();
 
         irrDevice->getCursorControl()->setVisible(0);
-
 
         // Initialize bullet
         btDefaultCollisionConfiguration *CollisionConfiguration = new btDefaultCollisionConfiguration();
@@ -50,6 +43,7 @@ void Game::Run()
         // Main loop
         u32 TimeStamp = irrTimer->getTime(), DeltaTime = 0;
         while(!Done) {
+            std::cout << irrDriver->getFPS() << "\n";
 
             DeltaTime = irrTimer->getTime() - TimeStamp;
             TimeStamp = irrTimer->getTime();
@@ -79,7 +73,7 @@ void Game::Run()
         irrDevice->drop();
 }
 
-void  Game::CreateStartScene()
+void  gg::Game::CreateStartScene()
 {
     // Create the initial scene
     irrScene->addLightSceneNode(0, core::vector3df(0, 3000, 0), SColorf(4, 4, 4, 1),1000);
@@ -131,7 +125,7 @@ void  Game::CreateStartScene()
 
 
 
-void  Game::CreateShip(const btVector3 &TPosition)
+void  gg::Game::CreateShip(const btVector3 &TPosition)
 {
     const core::vector3df Size = core::vector3df(9.0f, 3.0f, 11.0f);
     const btScalar Mass = 5.5f;
@@ -178,7 +172,7 @@ void  Game::CreateShip(const btVector3 &TPosition)
 
 
 // Create a box rigid body
-void  Game::CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScalar TMass) {
+void  gg::Game::CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScalar TMass) {
 
     // Create an Irrlicht cube
     scene::ISceneNode *Node = irrScene->addCubeSceneNode(1.0f);
@@ -214,7 +208,7 @@ void  Game::CreateBox(const btVector3 &TPosition, const core::vector3df &TScale,
     Objects.push_back(RigidBody);
 }
 
-void  Game::Shoot()
+void  gg::Game::Shoot()
 {
     ///bullet size
     scene::IMeshSceneNode *Node = irrScene->addSphereSceneNode(0.5f,32);
@@ -256,7 +250,7 @@ void  Game::Shoot()
 
 // Runs the physics simulation.
 // - TDeltaTime tells the simulation how much time has passed since the last frame so the simulation can run independently of the frame rate.
-void  Game::UpdatePhysics(u32 TDeltaTime)
+void  gg::Game::UpdatePhysics(u32 TDeltaTime)
 {
 
     World->stepSimulation(TDeltaTime * 0.001f, 60);
@@ -269,7 +263,7 @@ void  Game::UpdatePhysics(u32 TDeltaTime)
 }
 
 // Passes bullet's orientation to irrlicht
-void  Game::UpdateRender(btRigidBody *TObject)
+void  gg::Game::UpdateRender(btRigidBody *TObject)
 {
     ISceneNode *Node = static_cast<ISceneNode *>(TObject->getUserPointer());
 
@@ -287,7 +281,7 @@ void  Game::UpdateRender(btRigidBody *TObject)
 }
 
 // Removes all objects from the world
-void  Game::ClearObjects()
+void  gg::Game::ClearObjects()
 {
     for(list<btRigidBody *>::Iterator Iterator = Objects.begin(); Iterator != Objects.end(); ++Iterator)
     {

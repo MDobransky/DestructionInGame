@@ -4,13 +4,13 @@
 #ifndef OBJECTCREATOR_H
 #define OBJECTCREATOR_H
 
+
 namespace gg {
 
 
 class ObjectCreator
 {
 public:
-    ObjectCreator();
 };
 
 }

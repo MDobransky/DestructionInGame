@@ -14,28 +14,23 @@ LFLAGS = -L./bullet/lib  -L./Irrlicht/lib
 LIBS = -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath 
 
 # define the C++ source files
-SRCS = src/main.cpp
+SRCS = src/main.cpp src/Game.cpp src/EventReceiver.cpp
 
 # define the C++ object files 
 #
-# This uses Suffix Replacement within a macro:
-#   $(name:string1=string2)
-#         For each word in 'name' replace 'string1' with 'string2'
-# Below we are replacing the suffix .c of all words in the macro SRCS
-# with the .o suffix
-#
-
-
-
 
 .PHONY: depend clean
 
-build/game: build/game.o build/main.o
-	g++ $(CFLAGS) -o build/game build/game.o build/main.o $(LFLAGS) $(LIBS) 
+build/game: build/game.o build/main.o build/event.o build/loader.o
+	g++ $(CFLAGS) -o build/game build/game.o build/main.o build/event.o $(LFLAGS) $(LIBS) 
 build/game.o: src/Game.cpp
 	g++ $(CFLAGS) $(INCLUDES) -c src/Game.cpp -o build/game.o
 build/main.o: src/main.cpp
 	g++ $(CFLAGS) $(INCLUDES) -c src/main.cpp -o build/main.o
+build/event.o: src/EventReceiver.cpp
+	g++ $(CFLAGS) $(INCLUDES) -c src/EventReceiver.cpp -o build/event.o
+build/loader.o: src/Loader.cpp
+	g++ $(CFLAGS) $(INCLUDES) -c src/Loader.cpp -o build/loader.o
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
