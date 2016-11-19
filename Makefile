@@ -2,7 +2,7 @@
 CC = g++
 
 # define any compile-time flags
-CFLAGS = -Wall -std=c++14 -pedantic
+CFLAGS = -Wall -std=c++14 -pedantic -g
 
 
 INCLUDES = -I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/LinearMath
@@ -21,8 +21,8 @@ SRCS = src/main.cpp src/Game.cpp src/EventReceiver.cpp
 
 .PHONY: depend clean
 
-build/game: build/game.o build/main.o build/event.o build/loader.o
-	g++ $(CFLAGS) -o build/game build/game.o build/main.o build/event.o $(LFLAGS) $(LIBS) 
+build/game: build/game.o build/main.o build/event.o build/loader.o build/creator.o
+	g++ $(CFLAGS) -o build/game build/*.o $(LFLAGS) $(LIBS) 
 build/game.o: src/Game.cpp
 	g++ $(CFLAGS) $(INCLUDES) -c src/Game.cpp -o build/game.o
 build/main.o: src/main.cpp
@@ -31,6 +31,8 @@ build/event.o: src/EventReceiver.cpp
 	g++ $(CFLAGS) $(INCLUDES) -c src/EventReceiver.cpp -o build/event.o
 build/loader.o: src/Loader.cpp
 	g++ $(CFLAGS) $(INCLUDES) -c src/Loader.cpp -o build/loader.o
+build/creator.o: src/ObjectCreator.cpp
+	g++ $(CFLAGS) $(INCLUDES) -c src/ObjectCreator.cpp -o build/creator.o
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of

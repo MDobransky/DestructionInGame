@@ -31,12 +31,19 @@ class Loader
 {
 public:
     Loader(int, int, bool); //width, heigth, fullscreen
+
     //takes the file describing what to load and returns irrlicht device and rigidbody objects
-    std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<Object>> Load(std::string);
+    std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<Object>> load(std::string);
+
 private:
-    bool load_vehicle(std::string); //always steel
+    const std::string media = "media/";
+    bool load_vehicle(std::string&);
+    bool loadSkybox(std::string&);
     std::unique_ptr<IrrlichtDevice> irrDevice;
     std::vector<Object> objects;
+    std::unique_ptr<ObjectCreator> objectCreator;
+    int width, heigth;
+    bool fullscreen;
 
 
 };

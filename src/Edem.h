@@ -16,7 +16,7 @@ using namespace gui;
 namespace gg {
 
 //Extended Distinct Element Method' Element
-class EDEM : btRigidBody
+class EDEM
 {
 private:
     btRigidBody* rigidBody;

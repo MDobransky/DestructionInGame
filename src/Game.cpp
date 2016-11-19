@@ -1,5 +1,6 @@
 #include "Game.h"
 #include <iostream>
+#include <string>
 
 
 using namespace irr;
@@ -16,19 +17,38 @@ gg::Game::Game()
 
 gg::Game::~Game()
 {
+    delete events;
 }
 
 void gg::Game::Run()
 {
+        events = new EventReceiver(this);
         Done = false;
+
+        loader = std::make_unique<Loader>(1600,900,false);
+        std::tie(irrDevice, objects) = loader->load("media/levels/1");
+        irrDevice->setEventReceiver(events);
+
+
+
     // Initialize irrlicht
-        irrDevice = createDevice(video::EDT_OPENGL, dimension2d<u32>(1600,900), 32, false, false, false, new EventReceiver(this));
         irrGUI = irrDevice->getGUIEnvironment();
         irrTimer = irrDevice->getTimer();
         irrScene = irrDevice->getSceneManager();
         irrDriver = irrDevice->getVideoDriver();
 
         irrDevice->getCursorControl()->setVisible(0);
+
+
+
+        IMesh* mesh = irrScene->getMesh("media/vue_ready_shasta.obj");
+
+        irrScene->getMeshManipulator()->scale(mesh,core::vector3df(10,10,10));
+        IMeshSceneNode* Node = irrScene->addMeshSceneNode( mesh );
+        Node->setMaterialType(EMT_SOLID);
+        Node->setMaterialFlag(EMF_LIGHTING, 1);
+        Node->setMaterialTexture(0, irrDriver->getTexture("media/terrain-texture.jpg"));
+
 
         // Initialize bullet
         btDefaultCollisionConfiguration *CollisionConfiguration = new btDefaultCollisionConfiguration();
@@ -43,7 +63,7 @@ void gg::Game::Run()
         // Main loop
         u32 TimeStamp = irrTimer->getTime(), DeltaTime = 0;
         while(!Done) {
-            std::cout << irrDriver->getFPS() << "\n";
+            irrDevice->setWindowCaption(std::to_wstring(irrDriver->getFPS()).c_str());
 
             DeltaTime = irrTimer->getTime() - TimeStamp;
             TimeStamp = irrTimer->getTime();
@@ -59,7 +79,6 @@ void gg::Game::Run()
             irrScene->drawAll();
             irrGUI->drawAll();
             irrDriver->endScene();
-
             irrDevice->run();
         }
 
@@ -70,35 +89,23 @@ void gg::Game::Run()
         delete BroadPhase;
         delete CollisionConfiguration;
 
-        irrDevice->drop();
+  //      irrDevice->drop();
 }
 
 void  gg::Game::CreateStartScene()
 {
     // Create the initial scene
-    irrScene->addLightSceneNode(0, core::vector3df(0, 3000, 0), SColorf(4, 4, 4, 1),1000);
+    irrScene->addLightSceneNode(0, core::vector3df(0, 7000, 0), SColorf(4, 4, 4, 1),10000);
     irrScene->setAmbientLight(video::SColorf(0.3,0.3,0.3,1));
 
     ClearObjects();
     //ground
     //CreateBox(btVector3(0.0f, -500.0f, -0.5f), vector3df(20000.0f, 0.2f, 20000.0f), 0.0f);
     //position, size, mass
-    CreateShip(btVector3(0.0f, 2.0f, 0.0f));
-
-    //skybox
-    irrDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
-    irrScene->addSkyBoxSceneNode(
-        irrDriver->getTexture("./media/skybox/nevada_up.tga"),
-        irrDriver->getTexture("./media/skybox/nevada_dn.tga"),
-        irrDriver->getTexture("./media/skybox/nevada_rt.tga"),
-        irrDriver->getTexture("./media/skybox/nevada_lf.tga"),
-        irrDriver->getTexture("./media/skybox/nevada_ft.tga"),
-        irrDriver->getTexture("./media/skybox/nevada_bk.tga")
-        );
-    irrDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
+    CreateShip(btVector3(0.0f, 2000.0f, 0.0f));
 
     //camera
-    Camera= irrScene->addCameraSceneNode();
+    Camera = irrScene->addCameraSceneNode();
     btVector3 trans = btShip->getWorldTransform().getBasis() * btVector3(0,3,+10);
     Camera->setPosition(vector3df(trans.getX(),trans.getY(),trans.getZ()));
     Camera->setTarget(IShip->getPosition());
@@ -106,7 +113,7 @@ void  gg::Game::CreateStartScene()
     Camera->bindTargetAndRotation(1);
 
     //rendered distance
-    Camera->setFarValue(1000);
+    Camera->setFarValue(100000);
 /*
     //terrain
     scene::ITerrainSceneNode* terrain = irrScene->addTerrainSceneNode(

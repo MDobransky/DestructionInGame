@@ -14,8 +14,16 @@ namespace gg {
 
 class Object
 {
+private:
     btRigidBody* rigidBody;
     std::vector<EDEM> edems;
+public:
+    ~Object() {}
+    Object () {}
+    Object (Object&&) = default;
+    Object (Object&) = default;
+    Object& operator= (Object&&) = default;
+    Object&  operator= (const Object&) = default;
 
 };
 

@@ -4,6 +4,14 @@
 #ifndef OBJECTCREATOR_H
 #define OBJECTCREATOR_H
 
+#include "Edem.h"
+#include "Object.h"
+
+#include <irrlicht.h>
+#include <btBulletCollisionCommon.h>
+#include <btBulletDynamicsCommon.h>
+
+#include <string>
 
 namespace gg {
 
@@ -11,6 +19,9 @@ namespace gg {
 class ObjectCreator
 {
 public:
+    Object createTerrain(std::string&);
+    Object createRigidBody(std::string&);
+
 };
 
 }

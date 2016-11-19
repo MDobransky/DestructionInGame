@@ -3,6 +3,7 @@
 
 #include "Object.h"
 #include "EventReceiver.h"
+#include "Loader.h"
 
 
 #include <irrlicht.h>
@@ -20,6 +21,8 @@ using namespace gui;
 
 namespace gg {
 
+class EventReceiver;
+
 class Game
 {
     friend class EventReceiver;
@@ -33,7 +36,7 @@ private:
     void ClearObjects();
     void Shoot();
 
-    IrrlichtDevice *irrDevice;
+    //IrrlichtDevice *irrDevice;
     btDiscreteDynamicsWorld *World;
 
     bool Done;
@@ -47,6 +50,10 @@ private:
     btRigidBody* btShip;
     float velocity;
 
+    std::unique_ptr<IrrlichtDevice> irrDevice;
+    std::unique_ptr<Loader> loader;
+    std::vector<Object> objects;
+    EventReceiver* events;
 
 
 public:
