@@ -19,6 +19,9 @@ public:
     Game * game;
 
     virtual bool OnEvent(const SEvent &TEvent);
+private:
+    const btVector3 empty = btVector3(0,0,0);
+    const float torque = 0.5f;
 };
 
 }

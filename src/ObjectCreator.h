@@ -19,9 +19,14 @@ namespace gg {
 class ObjectCreator
 {
 public:
-    Object createTerrain(std::string&);
-    Object createRigidBody(std::string&);
-
+    ObjectCreator(IrrlichtDevice*);
+    Object createTerrain(std::vector<std::string>&&);
+    Object createRigidBody(std::vector<std::string>&&);
+    Object createSolidGround(float, float); //size
+    static btBvhTriangleMeshShape* convertMesh(IMeshSceneNode*);
+private:
+    IrrlichtDevice* irrDevice;
+    const std::string media = "media/";
 };
 
 }

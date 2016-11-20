@@ -4,14 +4,16 @@
 
 gg::Loader::Loader(int w, int h , bool full) : width(w), heigth(h), fullscreen(full)
 {
-    objectCreator = std::make_unique<ObjectCreator>();
+
 }
 
 std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<gg::Object>> gg::Loader::load(std::string level)
 {
     //initialize needed variables
-    irrDevice = std::unique_ptr<irr::IrrlichtDevice>(createDevice(video::EDT_OPENGL, dimension2d<u32>(width,heigth), 32, fullscreen, false, false, 0)); //setEventReceiver(e) in game.cpp
+    irrDevice.reset(createDevice(video::EDT_OPENGL, dimension2d<u32>(width,heigth), 32, fullscreen, false, false, 0)); //setEventReceiver(e) in game.cpp
     objects = std::vector<gg::Object>();
+    objectCreator.reset(new ObjectCreator(irrDevice.get()));
+
     std::string current_line;
     //open level file
     std::fstream fin;
@@ -19,26 +21,23 @@ std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<gg::Object>> gg::Loader:
 
     //read first line --terrain
     std::getline(fin, current_line);
-    objects.push_back(objectCreator->createTerrain(current_line));
+    objects.push_back(objectCreator->createTerrain(split(std::stringstream(current_line))));
 
     //read second line and setup skybox
     std::getline(fin, current_line);
-    if(!loadSkybox(current_line))
+    if(!loadSkybox(split(std::stringstream(current_line))))
         std::cerr << "Loading skybox failed!\n";
 
     //read vehicle and all other models
     while(std::getline(fin, current_line))
-        objects.push_back(objectCreator->createRigidBody(current_line));
+        objects.push_back(objectCreator->createRigidBody(split(std::stringstream(current_line))));
 
     fin.close();
     return std::make_tuple(std::move(irrDevice), std::move(objects));
 }
 
-bool gg::Loader::loadSkybox(std::string& line)
+bool gg::Loader::loadSkybox(std::vector<std::string>&& files)
 {
-    std::istringstream split(line);
-    std::vector<std::string> files;
-    for(std::string file; std::getline(split, file, ';');files.push_back(media + file));
     if(files.size() < 6)
         return false;
 
@@ -46,14 +45,21 @@ bool gg::Loader::loadSkybox(std::string& line)
 
     irrDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, false);
     irrDevice->getSceneManager()->addSkyBoxSceneNode(
-        irrDriver->getTexture(files[0].c_str()),
-        irrDriver->getTexture(files[1].c_str()),
-        irrDriver->getTexture(files[2].c_str()),
-        irrDriver->getTexture(files[3].c_str()),
-        irrDriver->getTexture(files[4].c_str()),
-        irrDriver->getTexture(files[5].c_str())
+        irrDriver->getTexture((media + files[0]).c_str()),
+        irrDriver->getTexture((media + files[1]).c_str()),
+        irrDriver->getTexture((media + files[2]).c_str()),
+        irrDriver->getTexture((media + files[3]).c_str()),
+        irrDriver->getTexture((media + files[4]).c_str()),
+        irrDriver->getTexture((media + files[5]).c_str())
         );
     irrDriver->setTextureCreationFlag(video::ETCF_CREATE_MIP_MAPS, true);
 
     return true;
+}
+
+std::vector<std::string> gg::Loader::split(std::stringstream&& split)
+{
+    std::vector<std::string> parts;
+    for(std::string item; std::getline(split, item, ';');parts.push_back(item));
+    return std::move(parts);
 }

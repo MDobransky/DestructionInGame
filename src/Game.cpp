@@ -26,9 +26,11 @@ void gg::Game::Run()
         Done = false;
 
         loader = std::make_unique<Loader>(1600,900,false);
+
+        objects = std::vector<gg::Object>();
+        irrDevice.reset(); //reset AFTER objects are deleted!!!
         std::tie(irrDevice, objects) = loader->load("media/levels/1");
         irrDevice->setEventReceiver(events);
-
 
 
     // Initialize irrlicht
@@ -41,21 +43,27 @@ void gg::Game::Run()
 
 
 
-        IMesh* mesh = irrScene->getMesh("media/vue_ready_shasta.obj");
-
-        irrScene->getMeshManipulator()->scale(mesh,core::vector3df(10,10,10));
-        IMeshSceneNode* Node = irrScene->addMeshSceneNode( mesh );
-        Node->setMaterialType(EMT_SOLID);
-        Node->setMaterialFlag(EMF_LIGHTING, 1);
-        Node->setMaterialTexture(0, irrDriver->getTexture("media/terrain-texture.jpg"));
-
-
         // Initialize bullet
         btDefaultCollisionConfiguration *CollisionConfiguration = new btDefaultCollisionConfiguration();
         btBroadphaseInterface *BroadPhase = new btAxisSweep3(btVector3(-1000, -1000, -1000), btVector3(1000, 1000, 1000));
         btCollisionDispatcher *Dispatcher = new btCollisionDispatcher(CollisionConfiguration);
         btSequentialImpulseConstraintSolver *Solver = new btSequentialImpulseConstraintSolver();
         World = new btDiscreteDynamicsWorld(Dispatcher, BroadPhase, Solver, CollisionConfiguration);
+
+        DebugDraw debugDraw(irrDevice.get());
+           debugDraw.setDebugMode(
+                 btIDebugDraw::DBG_DrawWireframe |
+                 btIDebugDraw::DBG_DrawAabb |
+                 btIDebugDraw::DBG_DrawContactPoints |
+                 //btIDebugDraw::DBG_DrawText |
+                 //btIDebugDraw::DBG_DrawConstraintLimits |
+                 btIDebugDraw::DBG_DrawConstraints //|
+           );
+           World->setDebugDrawer(&debugDraw);
+
+           irr::video::SMaterial debugMat;
+           debugMat.Lighting = false;
+           const bool debug_draw_bullet = false;
 
         CreateStartScene();
         velocity = -50;
@@ -77,6 +85,13 @@ void gg::Game::Run()
             irrDriver->beginScene(true, true, SColor(255, 20, 0, 0));
 
             irrScene->drawAll();
+
+            if (debug_draw_bullet)
+                  {
+                     irrDriver->setMaterial(debugMat);
+                     irrDriver->setTransform(irr::video::ETS_WORLD, irr::core::IdentityMatrix);
+                     World->debugDrawWorld();
+                  }
             irrGUI->drawAll();
             irrDriver->endScene();
             irrDevice->run();
@@ -106,7 +121,7 @@ void  gg::Game::CreateStartScene()
 
     //camera
     Camera = irrScene->addCameraSceneNode();
-    btVector3 trans = btShip->getWorldTransform().getBasis() * btVector3(0,3,+10);
+    btVector3 trans = btShip->getWorldTransform().getBasis() * btVector3(0,1,+3);
     Camera->setPosition(vector3df(trans.getX(),trans.getY(),trans.getZ()));
     Camera->setTarget(IShip->getPosition());
     Camera->setParent(IShip);
@@ -114,32 +129,18 @@ void  gg::Game::CreateStartScene()
 
     //rendered distance
     Camera->setFarValue(100000);
-/*
-    //terrain
-    scene::ITerrainSceneNode* terrain = irrScene->addTerrainSceneNode(
-          "./media/terrain-heightmap.bmp",0,-1,core::vector3df(0,-20,0));
 
-    terrain->setScale(core::vector3df(80, 8.8f, 80));
-    terrain->setMaterialFlag(video::EMF_LIGHTING, false);
-
-    terrain->setMaterialTexture(0, irrDriver->getTexture("./media/terrain-texture.jpg"));
-    terrain->setMaterialTexture(1, irrDriver->getTexture("./media/detailmap3.jpg"));
-
-    terrain->setMaterialType(video::EMT_DETAIL_MAP);
-    terrain->scaleTexture(1.0f, 20.0f);
-*/
 }
 
 
 
 void  gg::Game::CreateShip(const btVector3 &TPosition)
 {
-    const core::vector3df Size = core::vector3df(9.0f, 3.0f, 11.0f);
     const btScalar Mass = 5.5f;
 
     IMesh* mesh = irrScene->getMesh("media/xwing.3ds");
 
-    irrScene->getMeshManipulator()->scale(mesh,core::vector3df(2.6,2.6,2.6));
+    irrScene->getMeshManipulator()->scale(mesh,core::vector3df(1,1,1));
     IMeshSceneNode* Node = irrScene->addMeshSceneNode( mesh );
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_LIGHTING, 1);
@@ -153,10 +154,8 @@ void  gg::Game::CreateShip(const btVector3 &TPosition)
     btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
 
     // Create the shape
-    //TODO \/ for better hitboxes
-    //https://studiofreya.com/game-maker/bullet-physics/from-irrlicht-mesh-to-bullet-physics-mesh/
-    btVector3 HalfExtents(Size.X*0.5, Size.Y*0.5 , Size.Z*0.5);
-    btCollisionShape *Shape = new btBoxShape(HalfExtents);
+    btCollisionShape *Shape = ObjectCreator::convertMesh(Node);
+    Shape->setMargin( 0.05f );
 
     // Add mass
     btVector3 LocalInertia;
@@ -267,6 +266,7 @@ void  gg::Game::UpdatePhysics(u32 TDeltaTime)
     {
         UpdateRender(*Iterator);
     }
+    Camera->setTarget(IShip->getPosition());
 }
 
 // Passes bullet's orientation to irrlicht

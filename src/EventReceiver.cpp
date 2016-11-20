@@ -3,9 +3,8 @@
 bool gg::EventReceiver::OnEvent(const SEvent &TEvent)
 {
 
-    if(TEvent.EventType == EET_KEY_INPUT_EVENT && !TEvent.KeyInput.PressedDown)
+    if(TEvent.EventType == EET_KEY_INPUT_EVENT)
     {
-        int torque = 500;
         btVector3 torqueVec(0,0,0);
 
         switch(TEvent.KeyInput.Key)
@@ -28,12 +27,12 @@ bool gg::EventReceiver::OnEvent(const SEvent &TEvent)
             break;
             case KEY_KEY_A:
             {
-                torqueVec = btVector3(0,-torque/2,0);
+                torqueVec = btVector3(0,-torque/5,0);
             }
             break;
             case KEY_KEY_D:
             {
-                torqueVec = btVector3(0,torque/2,0);
+                torqueVec = btVector3(0,torque/5,0);
             }
             break;
             case KEY_KEY_Q:
@@ -48,13 +47,13 @@ bool gg::EventReceiver::OnEvent(const SEvent &TEvent)
             break;
             case KEY_LSHIFT:
             {
-                game->velocity -= 10;
-                if(game->velocity < -100) game->velocity = -100;
+                game->velocity -= 20;
+                if(game->velocity < -200) game->velocity = -200;
             }
             break;
             case KEY_LCONTROL:
             {
-                game->velocity += 10;
+                game->velocity += 20;
                 if(game->velocity > 0) game->velocity = 0;
             }
             break;
@@ -68,8 +67,11 @@ bool gg::EventReceiver::OnEvent(const SEvent &TEvent)
             break;
         }
         //apply the effect of WASDQE
-        game->btShip->applyTorque(game->btShip->getWorldTransform().getBasis() * torqueVec);
-
+        if(torqueVec != empty)
+        {
+            game->btShip->setDamping(0,0.9);
+            game->btShip->setAngularVelocity(game->btShip->getWorldTransform().getBasis() * torqueVec + game->btShip->getAngularVelocity());
+        }
         return true;
     }
     return false;

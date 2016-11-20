@@ -38,12 +38,13 @@ public:
 private:
     const std::string media = "media/";
     bool load_vehicle(std::string&);
-    bool loadSkybox(std::string&);
+    bool loadSkybox(std::vector<std::string>&&);
     std::unique_ptr<IrrlichtDevice> irrDevice;
     std::vector<Object> objects;
     std::unique_ptr<ObjectCreator> objectCreator;
     int width, heigth;
     bool fullscreen;
+    std::vector<std::string> split(std::stringstream&&);
 
 
 };

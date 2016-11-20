@@ -9,22 +9,42 @@
 #include <btBulletDynamicsCommon.h>
 
 #include <vector>
+#include <memory>
+#include <iostream>
 
 namespace gg {
 
 class Object
 {
 private:
-    btRigidBody* rigidBody;
+    std::unique_ptr<btRigidBody> rigidBody;
     std::vector<EDEM> edems;
 public:
-    ~Object() {}
-    Object () {}
-    Object (Object&&) = default;
-    Object (Object&) = default;
-    Object& operator= (Object&&) = default;
-    Object&  operator= (const Object&) = default;
+    btRigidBody* getRigid() { return rigidBody.get(); }
 
+    ~Object()
+    {
+        if(rigidBody.get() != nullptr)
+        {
+            if(rigidBody->getMotionState() != nullptr)
+                delete rigidBody->getMotionState();
+            if(rigidBody->getCollisionShape() != nullptr)
+                delete rigidBody->getCollisionShape();
+            ISceneNode *node = static_cast<ISceneNode *>(rigidBody->getUserPointer());
+            if(node) node->remove();
+        }
+    }
+    Object () {}
+    Object (btRigidBody* rb) :rigidBody(std::unique_ptr<btRigidBody>(rb)) {}
+    Object (Object&& newObj)
+    {
+        rigidBody = std::move(newObj.rigidBody);
+        edems = std::move(newObj.edems);
+    }
+
+    Object (Object&) = delete;
+    Object& operator= (Object&& newObj) = delete;
+    Object&  operator= (const Object&) = delete;
 };
 
 }
