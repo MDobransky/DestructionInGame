@@ -63,9 +63,18 @@ void gg::Game::Run()
 
            irr::video::SMaterial debugMat;
            debugMat.Lighting = false;
-           const bool debug_draw_bullet = false;
+           const bool debug_draw_bullet = true;
 
         CreateStartScene();
+
+        World->addRigidBody(objects[0].getRigid());
+        Objects.push_back(objects[0].getRigid());
+        objects[0].getRigid()->activate();
+
+        World->addRigidBody(objects[1].getRigid());
+        Objects.push_back(objects[1].getRigid());
+        objects[1].getRigid()->setGravity(btVector3(0,0,0));
+
         velocity = -50;
 
         // Main loop
@@ -87,17 +96,17 @@ void gg::Game::Run()
             irrScene->drawAll();
 
             if (debug_draw_bullet)
-                  {
-                     irrDriver->setMaterial(debugMat);
-                     irrDriver->setTransform(irr::video::ETS_WORLD, irr::core::IdentityMatrix);
-                     World->debugDrawWorld();
-                  }
+            {
+                irrDriver->setMaterial(debugMat);
+                irrDriver->setTransform(irr::video::ETS_WORLD, irr::core::IdentityMatrix);
+                World->debugDrawWorld();
+            }
             irrGUI->drawAll();
             irrDriver->endScene();
             irrDevice->run();
         }
 
-        ClearObjects();
+        //ClearObjects();
         delete World;
         delete Solver;
         delete Dispatcher;
@@ -117,11 +126,11 @@ void  gg::Game::CreateStartScene()
     //ground
     //CreateBox(btVector3(0.0f, -500.0f, -0.5f), vector3df(20000.0f, 0.2f, 20000.0f), 0.0f);
     //position, size, mass
-    CreateShip(btVector3(0.0f, 2000.0f, 0.0f));
+    CreateShip(btVector3(0.0f, 0.0f, 0.0f));
 
     //camera
     Camera = irrScene->addCameraSceneNode();
-    btVector3 trans = btShip->getWorldTransform().getBasis() * btVector3(0,1,+3);
+    btVector3 trans = btShip->getWorldTransform().getBasis() * btVector3(0,0.3,+0.6);
     Camera->setPosition(vector3df(trans.getX(),trans.getY(),trans.getZ()));
     Camera->setTarget(IShip->getPosition());
     Camera->setParent(IShip);
@@ -140,7 +149,7 @@ void  gg::Game::CreateShip(const btVector3 &TPosition)
 
     IMesh* mesh = irrScene->getMesh("media/xwing.3ds");
 
-    irrScene->getMeshManipulator()->scale(mesh,core::vector3df(1,1,1));
+    irrScene->getMeshManipulator()->scale(mesh,core::vector3df(0.1,0.1,0.1));
     IMeshSceneNode* Node = irrScene->addMeshSceneNode( mesh );
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_LIGHTING, 1);

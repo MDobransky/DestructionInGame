@@ -22,6 +22,8 @@ std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<gg::Object>> gg::Loader:
     //read first line --terrain
     std::getline(fin, current_line);
     objects.push_back(objectCreator->createTerrain(split(std::stringstream(current_line))));
+    if(!objects.back().isEmpty())
+        objects.push_back(objectCreator->createSolidGround(objects.back().getRigid()));
 
     //read second line and setup skybox
     std::getline(fin, current_line);

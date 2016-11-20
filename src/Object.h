@@ -19,8 +19,10 @@ class Object
 private:
     std::unique_ptr<btRigidBody> rigidBody;
     std::vector<EDEM> edems;
+    bool empty;
 public:
     btRigidBody* getRigid() { return rigidBody.get(); }
+    bool isEmpty() { return empty; }
 
     ~Object()
     {
@@ -34,8 +36,11 @@ public:
             if(node) node->remove();
         }
     }
-    Object () {}
-    Object (btRigidBody* rb) :rigidBody(std::unique_ptr<btRigidBody>(rb)) {}
+    Object () : empty(true) {}
+    Object (btRigidBody* rb) :rigidBody(std::unique_ptr<btRigidBody>(rb))
+    {
+        empty = rigidBody == nullptr;
+    }
     Object (Object&& newObj)
     {
         rigidBody = std::move(newObj.rigidBody);

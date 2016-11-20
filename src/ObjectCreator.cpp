@@ -1,6 +1,7 @@
 #include "ObjectCreator.h"
 
 #include <iostream>
+#include <cmath>
 
 
 gg::ObjectCreator::ObjectCreator(IrrlichtDevice* irr) : irrDevice(irr)
@@ -25,18 +26,13 @@ gg::Object gg::ObjectCreator::createTerrain(std::vector<std::string>&& items)
 
     btTransform transform;
     transform.setIdentity();
-    transform.setOrigin(btVector3(0,0,0));
+    transform.setOrigin(btVector3(0,-1000,0));
 
     btDefaultMotionState *motionState = new btDefaultMotionState(transform);
 
-    // Create the shape
-    //TODO \/ for better hitboxes
-    //https://studiofreya.com/game-maker/bullet-physics/from-irrlicht-mesh-to-bullet-physics-mesh/
-    //btCollisionShape *shape = convertMesh(node);
-    btVector3 HalfExtents(1*0.5, 1*0.5 , 1*0.5);
-    btCollisionShape *shape = new btBoxShape(HalfExtents);
+    btCollisionShape *shape = convertMesh(node);
 
-    const btScalar Mass = 0.0f;
+    const btScalar Mass = 1.0f;
     // Add mass
     btVector3 localInertia;
     shape->calculateLocalInertia(Mass, localInertia);
@@ -46,7 +42,6 @@ gg::Object gg::ObjectCreator::createTerrain(std::vector<std::string>&& items)
 
     // Store a pointer to the irrlicht node so we can update it later
     rigidBody->setUserPointer((void *)(node));
-
     //Object a(RigidBody);
     return std::move(Object(rigidBody));
 }
@@ -57,137 +52,72 @@ gg::Object gg::ObjectCreator::createRigidBody(std::vector<std::string>&& items)
     return std::move(a);
 }
 
-gg::Object gg::ObjectCreator::createSolidGround(float, float)
+gg::Object gg::ObjectCreator::createSolidGround(btRigidBody * terrain)
 {
-    Object a;
-    return std::move(a);
+    //Get position and size from terrain
+    btTransform t;
+    t.setIdentity();
+    btVector3 min,max,pos;
+    vector3df size;
+    terrain->getCollisionShape()->getAabb(t,max,min);
+
+    size = vector3df(abs(min.getX())+abs(max.getX()), 50, abs(min.getZ())+abs(max.getZ()));
+    pos = btVector3(0,-1026+max.getY(),0);
+
+    // Create an Irrlicht cube
+    scene::ISceneNode *Node = irrDevice->getSceneManager()->addCubeSceneNode(1.0f);
+    Node->setScale(size);
+    Node->setMaterialFlag(video::EMF_LIGHTING, 1);
+    Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
+    Node->setMaterialTexture(0, irrDevice->getVideoDriver()->getTexture("media/rust0.jpg"));
+
+    // Set the initial position of the object
+    btTransform Transform;
+    Transform.setIdentity();
+    Transform.setOrigin(pos);
+
+    // Give it a default MotionState
+    btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
+
+    // Create the shape
+    btVector3 HalfExtents(size.X*0.5, size.Y*0.5 , size.Z*0.5);
+    btCollisionShape *Shape = new btBoxShape(HalfExtents);
+
+    // Add mass
+    btVector3 LocalInertia;
+    Shape->calculateLocalInertia(4, LocalInertia);
+
+    // Create the rigid body object
+    btRigidBody *RigidBody = new btRigidBody(4, MotionState, Shape, LocalInertia);
+    RigidBody->setGravity(btVector3(0,0,0));
+
+    // Store a pointer to the irrlicht node so we can update it later
+    RigidBody->setUserPointer((void *)(Node));
+
+    return std::move(Object(RigidBody));
 }
 
-//https://studiofreya.com/game-maker/bullet-physics/from-irrlicht-mesh-to-bullet-physics-mesh/
 btBvhTriangleMeshShape* gg::ObjectCreator::convertMesh(IMeshSceneNode * node)
 {
-    auto toBtVector = [ &](const vector3df& vec) -> btVector3
+    btTriangleMesh* btMesh = new btTriangleMesh();
+
+    for (irr::u32 i = 0; i < node->getMesh()->getMeshBufferCount(); i++)
     {
-        btVector3 bt( vec.X, vec.Y, vec.Z );
-        return bt;
-    };
+        IMeshBuffer* meshBuffer = node->getMesh()->getMeshBuffer(i);
+        S3DVertex* vertices = (S3DVertex*)meshBuffer->getVertices();
+        u16* indices = meshBuffer->getIndices();
 
-    IMesh * mesh = node->getMesh();
-    const size_t buffercount = mesh->getMeshBufferCount();
-
-    // Save data here
-            std::vector<irr::video::S3DVertex>    verticesList;
-            std::vector<int>                  indicesList;
-
-            for ( size_t i=0; i<buffercount; ++i )
-            {
-                // Current meshbuffer
-                IMeshBuffer * buffer = mesh->getMeshBuffer( i );
-
-                // EVT_STANDARD -> video::S3DVertex
-                // EVT_2TCOORDS -> video::S3DVertex2TCoords
-                // EVT_TANGENTS -> video::S3DVertexTangents
-                const irr::video::E_VERTEX_TYPE vertexType      = buffer->getVertexType();
-
-                // EIT_16BIT
-                // EIT_32BIT
-                const irr::video::E_INDEX_TYPE  indexType       = buffer->getIndexType();
-
-                // Get working data
-                const size_t numVerts       = buffer->getVertexCount();
-                const size_t numInd         = buffer->getIndexCount();
-
-                // Resize save buffers
-                verticesList.resize( verticesList.size() + numVerts );
-                indicesList.resize( indicesList.size() + numInd );
-
-                void * vertices             = buffer->getVertices();
-                void * indices              = buffer->getIndices();
-
-                irr::video::S3DVertex           * standard      = reinterpret_cast<irr::video::S3DVertex*>( vertices );
-                irr::video::S3DVertex2TCoords   * two2coords    = reinterpret_cast<irr::video::S3DVertex2TCoords*>( vertices );
-                irr::video::S3DVertexTangents   * tangents      = reinterpret_cast<irr::video::S3DVertexTangents*>( vertices );
-
-                int16_t * ind16     = reinterpret_cast<int16_t*>( indices );
-                int32_t * ind32     = reinterpret_cast<int32_t*>( indices );
-
-                for ( size_t v = 0; v < numVerts; ++v )
-                {
-                    irr::video::S3DVertex & vert = verticesList[ (verticesList.size() - numVerts) + v ];
-
-                    switch ( vertexType )
-                    {
-                        case irr::video::EVT_STANDARD:
-                            {
-                                const auto & irrv = standard[ v ];
-
-                                vert = irrv;
-                            }
-                            break;
-                        case irr::video::EVT_2TCOORDS:
-                            {
-                                const auto & irrv = two2coords[ v ];
-                                (void)irrv;
-
-                                // Not implemented
-                            }
-                            //break;
-                        case irr::video::EVT_TANGENTS:
-                            {
-                                const auto & irrv = tangents[ v ];
-                                (void)irrv;
-
-                                // Not implemented
-                            }
-                            //break;
-                    }
-
-                }
-
-                for ( size_t n = 0; n < numInd; ++n )
-                {
-                    int & index = indicesList[ (indicesList.size() - numInd) + n ];
-
-                    switch ( indexType )
-                    {
-                        case irr::video::EIT_16BIT:
-                        {
-                            index = ind16[ n ];
-                        }
-                            break;
-                        case irr::video::EIT_32BIT:
-                        {
-                            index = ind32[ n ];
-                        }
-                            break;
-                    }
-
-                }
-
-            }
-
-            if ( ! verticesList.empty() && ! indicesList.empty() )
-            {
-                        // Working numbers
-                        const size_t numIndices     = indicesList.size();
-
-                        // Create triangles
-                        btTriangleMesh * btmesh = new btTriangleMesh();
-
-                        // Build btTriangleMesh
-                        for ( size_t i=0; i<numIndices; i+=3 )
-                        {
-                            const btVector3 &A = toBtVector( verticesList[ indicesList[ i+0 ] ].Pos );
-                            const btVector3 &B = toBtVector( verticesList[ indicesList[ i+1 ] ].Pos );
-                            const btVector3 &C = toBtVector( verticesList[ indicesList[ i+2 ] ].Pos );
-
-                            bool removeDuplicateVertices = true;
-                            btmesh->addTriangle( A, B, C, removeDuplicateVertices );
-                        }
-
-                        return new btBvhTriangleMeshShape( btmesh, true );
-            }
-    return nullptr;
+        for (u32 i = 0; i < meshBuffer->getIndexCount(); i += 3)
+        {
+            vector3df triangle1 = vertices[indices[i]].Pos;
+            vector3df triangle2 = vertices[indices[i + 1]].Pos;
+            vector3df triangle3 = vertices[indices[i + 2]].Pos;
+            btMesh->addTriangle(btVector3(triangle1.X, triangle1.Y, triangle1.Z),
+                                btVector3(triangle2.X, triangle2.Y, triangle2.Z),
+                                btVector3(triangle3.X, triangle3.Y, triangle3.Z));
+        }
+    }
+    return new btBvhTriangleMeshShape( btMesh, true );
 }
 
 

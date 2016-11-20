@@ -13,6 +13,13 @@
 
 #include <string>
 
+using namespace irr;
+using namespace core;
+using namespace scene;
+using namespace video;
+using namespace io;
+using namespace gui;
+
 namespace gg {
 
 
@@ -22,7 +29,7 @@ public:
     ObjectCreator(IrrlichtDevice*);
     Object createTerrain(std::vector<std::string>&&);
     Object createRigidBody(std::vector<std::string>&&);
-    Object createSolidGround(float, float); //size
+    Object createSolidGround(btRigidBody*); //size
     static btBvhTriangleMeshShape* convertMesh(IMeshSceneNode*);
 private:
     IrrlichtDevice* irrDevice;
