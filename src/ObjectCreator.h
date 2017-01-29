@@ -27,8 +27,7 @@ class ObjectCreator
 {
 public:
     ObjectCreator(IrrlichtDevice*);
-    Object createTerrain(std::vector<std::string>&&);
-    Object createRigidBody(std::vector<std::string>&&);
+    Object createRigidBody(std::vector<std::string>&&, ISceneNode* parrent = NULL);
     Object createSolidGround(btRigidBody*); //size
     static btBvhTriangleMeshShape* convertMesh(IMeshSceneNode*);
 private:

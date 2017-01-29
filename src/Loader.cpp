@@ -19,20 +19,30 @@ std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<gg::Object>> gg::Loader:
     std::fstream fin;
     fin.open (level, std::fstream::in);
 
-    //read first line --terrain
-    std::getline(fin, current_line);
-    objects.push_back(objectCreator->createTerrain(split(std::stringstream(current_line))));
-    if(!objects.back().isEmpty())
-        objects.push_back(objectCreator->createSolidGround(objects.back().getRigid()));
-
-    //read second line and setup skybox
+    //read first line and setup skybox
     std::getline(fin, current_line);
     if(!loadSkybox(split(std::stringstream(current_line))))
         std::cerr << "Loading skybox failed!\n";
 
-    //read vehicle and all other models
+    //read otherlines --terrain and models
     while(std::getline(fin, current_line))
-        objects.push_back(objectCreator->createRigidBody(split(std::stringstream(current_line))));
+    {
+        if(current_line != "")
+        {
+            if(objects.size() > 1) //parrent is terrain but not to itself or vehicle
+            {
+                ISceneNode* parent = static_cast<ISceneNode *>(objects[0].getRigid()->getUserPointer());
+                objects.push_back(objectCreator->createRigidBody(split(std::stringstream(current_line)),parent));
+            }
+            else
+            {
+                objects.push_back(objectCreator->createRigidBody(split(std::stringstream(current_line))));
+            }
+        }
+    }
+
+    if(!objects[0].isEmpty())
+        objects.push_back(objectCreator->createSolidGround(objects.back().getRigid()));
 
     fin.close();
     return std::make_tuple(std::move(irrDevice), std::move(objects));

@@ -8,48 +8,62 @@ gg::ObjectCreator::ObjectCreator(IrrlichtDevice* irr) : irrDevice(irr)
 {
 }
 
-gg::Object gg::ObjectCreator::createTerrain(std::vector<std::string>&& items)
+gg::Object gg::ObjectCreator::createRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
 {
-    if(items.size() != 6)
+    if(items.size() != 13)
     {
-        std::cerr << "Terrain failed to load: not enought parameters\n";
+        std::cerr << "Object failed to load: wrong number of parameters\n";
         return Object();
     }
 
+    float numbers[10];
+    for(int i = 0; i < 10; i++)
+    {
+        numbers[i] = std::stof(items[i+3]);
+    }
+
+    btVector3 position(numbers[0],numbers[1],numbers[2]);
+    core::vector3df rotation(numbers[3],numbers[4],numbers[5]);
+    core::vector3df scale(numbers[6],numbers[7],numbers[8]);
+    const btScalar Mass = numbers[9];
+
     IMesh* mesh = irrDevice->getSceneManager()->getMesh((media + items[0]).c_str());
-    irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,core::vector3df(std::stod(items[3]),
-                                                              std::stod(items[4]),std::stod(items[5])));
-    IMeshSceneNode* node = irrDevice->getSceneManager()->addMeshSceneNode( mesh );
-    node->setMaterialType(EMT_SOLID);
-    node->setMaterialFlag(EMF_LIGHTING, 1);
-    node->setMaterialTexture(0, irrDevice->getVideoDriver()->getTexture((media + items[1]).c_str()));
+    irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
+    IMeshSceneNode* Node = irrDevice->getSceneManager()->addMeshSceneNode( mesh );
 
-    btTransform transform;
-    transform.setIdentity();
-    transform.setOrigin(btVector3(0,-1000,0));
+    if(parent != NULL)
+    {
+        Node->setParent(parent);
+        Node->setRotation(rotation);
+    }
+    Node->setMaterialType(EMT_SOLID);
+    Node->setMaterialFlag(EMF_LIGHTING, 1);
+    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+    if(items[1] != "")
+        Node->setMaterialTexture(0, irrDevice->getVideoDriver()->getTexture((media + items[1]).c_str()));
 
-    btDefaultMotionState *motionState = new btDefaultMotionState(transform);
+    // Set the initial position of the object
+    btTransform Transform;
+    Transform.setIdentity();
+    Transform.setOrigin(position);
 
-    btCollisionShape *shape = convertMesh(node);
+    btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
-    const btScalar Mass = 1.0f;
+    // Create the shape
+    btCollisionShape *Shape = ObjectCreator::convertMesh(Node);
+    Shape->setMargin( 0.05f );
+
     // Add mass
     btVector3 localInertia;
-    shape->calculateLocalInertia(Mass, localInertia);
+    Shape->calculateLocalInertia(Mass, localInertia);
 
     // Create the rigid body object
-    btRigidBody *rigidBody = new btRigidBody(Mass, motionState, shape, localInertia);
+    btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
     // Store a pointer to the irrlicht node so we can update it later
-    rigidBody->setUserPointer((void *)(node));
-    //Object a(RigidBody);
-    return std::move(Object(rigidBody));
-}
+    rigidBody->setUserPointer((void *)(Node));
 
-gg::Object gg::ObjectCreator::createRigidBody(std::vector<std::string>&& items)
-{
-    Object a;
-    return std::move(a);
+    return std::move(Object(rigidBody));
 }
 
 gg::Object gg::ObjectCreator::createSolidGround(btRigidBody * terrain)
@@ -85,11 +99,11 @@ gg::Object gg::ObjectCreator::createSolidGround(btRigidBody * terrain)
 
     // Add mass
     btVector3 LocalInertia;
-    Shape->calculateLocalInertia(4, LocalInertia);
+    Shape->calculateLocalInertia(0, LocalInertia);
 
     // Create the rigid body object
-    btRigidBody *RigidBody = new btRigidBody(4, MotionState, Shape, LocalInertia);
-    RigidBody->setGravity(btVector3(0,0,0));
+    btRigidBody *RigidBody = new btRigidBody(0, MotionState, Shape, LocalInertia);
+    //RigidBody->setGravity(btVector3(0,0,0));
 
     // Store a pointer to the irrlicht node so we can update it later
     RigidBody->setUserPointer((void *)(Node));

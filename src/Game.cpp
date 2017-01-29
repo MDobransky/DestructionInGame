@@ -22,98 +22,92 @@ gg::Game::~Game()
 
 void gg::Game::Run()
 {
-        events = new EventReceiver(this);
-        Done = false;
+    events = new EventReceiver(this);
+    Done = false;
 
-        loader = std::make_unique<Loader>(1600,900,false);
+    loader = std::make_unique<Loader>(1600,900,false);
 
-        objects = std::vector<gg::Object>();
-        irrDevice.reset(); //reset AFTER objects are deleted!!!
-        std::tie(irrDevice, objects) = loader->load("media/levels/1");
-        irrDevice->setEventReceiver(events);
+    //load game from file
+    objects = std::vector<gg::Object>();
+    irrDevice.reset(); //reset AFTER objects are deleted!!!
+    std::tie(irrDevice, objects) = loader->load("media/levels/1");
+    irrDevice->setEventReceiver(events);
 
 
     // Initialize irrlicht
-        irrGUI = irrDevice->getGUIEnvironment();
-        irrTimer = irrDevice->getTimer();
-        irrScene = irrDevice->getSceneManager();
-        irrDriver = irrDevice->getVideoDriver();
+    irrGUI = irrDevice->getGUIEnvironment();
+    irrTimer = irrDevice->getTimer();
+    irrScene = irrDevice->getSceneManager();
+    irrDriver = irrDevice->getVideoDriver();
 
-        irrDevice->getCursorControl()->setVisible(0);
+    irrDevice->getCursorControl()->setVisible(0);
+
+    // Initialize bullet
+    btDefaultCollisionConfiguration *CollisionConfiguration = new btDefaultCollisionConfiguration();
+    btBroadphaseInterface *BroadPhase = new btAxisSweep3(btVector3(-1000, -1000, -1000), btVector3(1000, 1000, 1000));
+    btCollisionDispatcher *Dispatcher = new btCollisionDispatcher(CollisionConfiguration);
+    btSequentialImpulseConstraintSolver *Solver = new btSequentialImpulseConstraintSolver();
+    World = new btDiscreteDynamicsWorld(Dispatcher, BroadPhase, Solver, CollisionConfiguration);
+
+    DebugDraw debugDraw(irrDevice.get());
+       debugDraw.setDebugMode(
+             btIDebugDraw::DBG_DrawWireframe |
+             btIDebugDraw::DBG_DrawAabb |
+             btIDebugDraw::DBG_DrawContactPoints |
+             //btIDebugDraw::DBG_DrawText |
+             //btIDebugDraw::DBG_DrawConstraintLimits |
+             btIDebugDraw::DBG_DrawConstraints //|
+       );
+       World->setDebugDrawer(&debugDraw);
+
+       irr::video::SMaterial debugMat;
+       debugMat.Lighting = false;
+       const bool debug_draw_bullet = false;
 
 
 
-        // Initialize bullet
-        btDefaultCollisionConfiguration *CollisionConfiguration = new btDefaultCollisionConfiguration();
-        btBroadphaseInterface *BroadPhase = new btAxisSweep3(btVector3(-1000, -1000, -1000), btVector3(1000, 1000, 1000));
-        btCollisionDispatcher *Dispatcher = new btCollisionDispatcher(CollisionConfiguration);
-        btSequentialImpulseConstraintSolver *Solver = new btSequentialImpulseConstraintSolver();
-        World = new btDiscreteDynamicsWorld(Dispatcher, BroadPhase, Solver, CollisionConfiguration);
+    CreateStartScene();
 
-        DebugDraw debugDraw(irrDevice.get());
-           debugDraw.setDebugMode(
-                 btIDebugDraw::DBG_DrawWireframe |
-                 btIDebugDraw::DBG_DrawAabb |
-                 btIDebugDraw::DBG_DrawContactPoints |
-                 //btIDebugDraw::DBG_DrawText |
-                 //btIDebugDraw::DBG_DrawConstraintLimits |
-                 btIDebugDraw::DBG_DrawConstraints //|
-           );
-           World->setDebugDrawer(&debugDraw);
 
-           irr::video::SMaterial debugMat;
-           debugMat.Lighting = false;
-           const bool debug_draw_bullet = true;
+    velocity = -50;
 
-        CreateStartScene();
+    // Main loop
+    u32 TimeStamp = irrTimer->getTime(), DeltaTime = 0;
+    while(!Done) {
+        irrDevice->setWindowCaption(std::to_wstring(irrDriver->getFPS()).c_str());
 
-        World->addRigidBody(objects[0].getRigid());
-        Objects.push_back(objects[0].getRigid());
-        objects[0].getRigid()->activate();
+        DeltaTime = irrTimer->getTime() - TimeStamp;
+        TimeStamp = irrTimer->getTime();
 
-        World->addRigidBody(objects[1].getRigid());
-        Objects.push_back(objects[1].getRigid());
-        objects[1].getRigid()->setGravity(btVector3(0,0,0));
+        btShip->setLinearVelocity(btShip->getWorldTransform().getBasis() * (btVector3( 0.f, -9.8f, velocity )));
 
-        velocity = -50;
+        Camera->setTarget(IShip->getPosition());
 
-        // Main loop
-        u32 TimeStamp = irrTimer->getTime(), DeltaTime = 0;
-        while(!Done) {
-            irrDevice->setWindowCaption(std::to_wstring(irrDriver->getFPS()).c_str());
+        UpdatePhysics(DeltaTime);
 
-            DeltaTime = irrTimer->getTime() - TimeStamp;
-            TimeStamp = irrTimer->getTime();
+        irrDriver->beginScene(true, true, SColor(255, 20, 0, 0));
 
-            btShip->setLinearVelocity(btShip->getWorldTransform().getBasis() * (btVector3( 0.f, -9.8f, velocity )));
+        irrScene->drawAll();
 
-            Camera->setTarget(IShip->getPosition());
-
-            UpdatePhysics(DeltaTime);
-
-            irrDriver->beginScene(true, true, SColor(255, 20, 0, 0));
-
-            irrScene->drawAll();
-
-            if (debug_draw_bullet)
-            {
-                irrDriver->setMaterial(debugMat);
-                irrDriver->setTransform(irr::video::ETS_WORLD, irr::core::IdentityMatrix);
-                World->debugDrawWorld();
-            }
-            irrGUI->drawAll();
-            irrDriver->endScene();
-            irrDevice->run();
+        if (debug_draw_bullet)
+        {
+            irrDriver->setMaterial(debugMat);
+            irrDriver->setTransform(irr::video::ETS_WORLD, irr::core::IdentityMatrix);
+            World->debugDrawWorld();
         }
+        irrGUI->drawAll();
+        irrDriver->endScene();
+        irrDevice->run();
+    }
 
-        //ClearObjects();
-        delete World;
-        delete Solver;
-        delete Dispatcher;
-        delete BroadPhase;
-        delete CollisionConfiguration;
+    //ClearObjects();
+    delete World;
+    delete Solver;
+    delete Dispatcher;
+    delete BroadPhase;
+    delete CollisionConfiguration;
 
-  //      irrDevice->drop();
+    //irrDevice->drop();
 }
 
 void  gg::Game::CreateStartScene()
@@ -123,10 +117,20 @@ void  gg::Game::CreateStartScene()
     irrScene->setAmbientLight(video::SColorf(0.3,0.3,0.3,1));
 
     ClearObjects();
-    //ground
-    //CreateBox(btVector3(0.0f, -500.0f, -0.5f), vector3df(20000.0f, 0.2f, 20000.0f), 0.0f);
-    //position, size, mass
-    CreateShip(btVector3(0.0f, 0.0f, 0.0f));
+
+    //put objects created by loader into bullet world
+    for(size_t i = 0; i < objects.size(); i++)
+    {
+        //ship
+        if(i == 1)
+        {
+            btShip = objects[i].getRigid();
+            IShip = static_cast<IMeshSceneNode *>(btShip->getUserPointer());
+        }
+        World->addRigidBody(objects[i].getRigid());
+        Objects.push_back(objects[i].getRigid());
+        objects[i].getRigid()->activate();
+    }
 
     //camera
     Camera = irrScene->addCameraSceneNode();
@@ -138,95 +142,12 @@ void  gg::Game::CreateStartScene()
 
     //rendered distance
     Camera->setFarValue(100000);
-
-}
-
-
-
-void  gg::Game::CreateShip(const btVector3 &TPosition)
-{
-    const btScalar Mass = 5.5f;
-
-    IMesh* mesh = irrScene->getMesh("media/xwing.3ds");
-
-    irrScene->getMeshManipulator()->scale(mesh,core::vector3df(0.1,0.1,0.1));
-    IMeshSceneNode* Node = irrScene->addMeshSceneNode( mesh );
-    Node->setMaterialType(EMT_SOLID);
-    Node->setMaterialFlag(EMF_LIGHTING, 1);
-    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-
-    // Set the initial position of the object
-    btTransform Transform;
-    Transform.setIdentity();
-    Transform.setOrigin(TPosition);
-
-    btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
-
-    // Create the shape
-    btCollisionShape *Shape = ObjectCreator::convertMesh(Node);
-    Shape->setMargin( 0.05f );
-
-    // Add mass
-    btVector3 LocalInertia;
-    Shape->calculateLocalInertia(Mass, LocalInertia);
-
-    // Create the rigid body object
-    btRigidBody *RigidBody = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
-
-    // Store a pointer to the irrlicht node so we can update it later
-    RigidBody->setUserPointer((void *)(Node));
-
-    // Add it to the world
-    World->addRigidBody(RigidBody);
-    Objects.push_back(RigidBody);
-
-    btShip = RigidBody;
-    IShip = Node;
-}
-
-
-
-// Create a box rigid body
-void  gg::Game::CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScalar TMass) {
-
-    // Create an Irrlicht cube
-    scene::ISceneNode *Node = irrScene->addCubeSceneNode(1.0f);
-    Node->setScale(TScale);
-    Node->setMaterialFlag(video::EMF_LIGHTING, 1);
-    Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
-    Node->setMaterialTexture(0, irrDriver->getTexture("media/rust0.jpg"));
-
-    // Set the initial position of the object
-    btTransform Transform;
-    Transform.setIdentity();
-    Transform.setOrigin(TPosition);
-
-    // Give it a default MotionState
-    btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
-
-    // Create the shape
-    btVector3 HalfExtents(TScale.X*0.5, TScale.Y*0.5 , TScale.Z*0.5);
-    btCollisionShape *Shape = new btBoxShape(HalfExtents);
-
-    // Add mass
-    btVector3 LocalInertia;
-    Shape->calculateLocalInertia(TMass, LocalInertia);
-
-    // Create the rigid body object
-    btRigidBody *RigidBody = new btRigidBody(TMass, MotionState, Shape, LocalInertia);
-
-    // Store a pointer to the irrlicht node so we can update it later
-    RigidBody->setUserPointer((void *)(Node));
-
-    // Add it to the world
-    World->addRigidBody(RigidBody);
-    Objects.push_back(RigidBody);
 }
 
 void  gg::Game::Shoot()
 {
     ///bullet size
-    scene::IMeshSceneNode *Node = irrScene->addSphereSceneNode(0.5f,32);
+    scene::IMeshSceneNode *Node = irrScene->addSphereSceneNode(10.0f);
     Node->setMaterialFlag(video::EMF_LIGHTING, 1);
     Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
     Node->setMaterialTexture(0, irrDriver->getTexture("media/ice0.jpg"));
@@ -234,13 +155,13 @@ void  gg::Game::Shoot()
     // Set the initial position
     btTransform Transform;
     Transform.setIdentity();
-    Transform.setOrigin(btShip->getCenterOfMassPosition() + btShip->getWorldTransform().getBasis() * btVector3(0,-3,-6));
+    Transform.setOrigin(btShip->getCenterOfMassPosition() + btShip->getWorldTransform().getBasis() * btVector3(0,-3,0));
 
     // Give it a default MotionState
     btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
 
     // Create the shape/hitbox
-    btCollisionShape *Shape = new btSphereShape(0.2f);
+    btCollisionShape *Shape = new btSphereShape(10.0f);
 
     // Add mass
     btVector3 LocalInertia;
@@ -250,7 +171,7 @@ void  gg::Game::Shoot()
     btRigidBody *bullet = new btRigidBody(1.0f, MotionState, Shape, LocalInertia);
 
     //shoot it with speed
-    bullet->applyImpulse(btShip->getWorldTransform().getBasis() * btVector3(0,0,-1000),btShip->getCenterOfMassPosition());
+    bullet->applyImpulse(btShip->getWorldTransform().getBasis() * btVector3(0,0,-1000), btShip->getCenterOfMassPosition());
 
     // Store a pointer to the irrlicht node so we can update it later
     bullet->setUserPointer((void *)(Node));

@@ -11,6 +11,8 @@
 #include <btBulletDynamicsCommon.h>
 
 #include <cstdlib>
+#include <utility>
+#include <iostream>
 
 using namespace irr;
 using namespace core;
@@ -29,7 +31,7 @@ class Game
 
 private:
     void CreateStartScene();
-    void CreateShip(const btVector3 &TPosition);
+    std::tuple<btRigidBody*, IMeshSceneNode*> CreateShip(const btVector3 &TPosition);
     void CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScalar TMass);
     void UpdatePhysics(u32 TDeltaTime);
     void UpdateRender(btRigidBody *TObject);
@@ -47,8 +49,9 @@ private:
     list<btRigidBody *> Objects;
     IMeshSceneNode* IShip;
     ICameraSceneNode* Camera;
-    btRigidBody* btShip;
+    btRigidBody* btShip = 0;
     float velocity;
+    std::unique_ptr<ObjectCreator> objectCreator;
 
     std::unique_ptr<IrrlichtDevice> irrDevice;
     std::unique_ptr<Loader> loader;

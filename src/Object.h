@@ -37,7 +37,7 @@ public:
         }
     }
     Object () : empty(true) {}
-    Object (btRigidBody* rb) :rigidBody(std::unique_ptr<btRigidBody>(rb))
+    Object (btRigidBody* rb) : rigidBody(std::unique_ptr<btRigidBody>(rb))
     {
         empty = rigidBody == nullptr;
     }

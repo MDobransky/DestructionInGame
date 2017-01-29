@@ -1,5 +1,6 @@
-terrain map file;texture;material(I,C,W...);scale(3x float)
 skybox up;down;right;left;front;back;
-modelfile;material(I,C,W...);position(3x float);rotation(3x float);scale(3x float)
-modelfile;material(I,C,W...);position(3x float);rotation(3x float);scale(3x float)
+terrain map file;texture;material(I,C,W...);position(3x float);rotation(3x float);scale(3x float);mass(float)
+modelfile;texture;material(I,C,W...);position(3x float);rotation(3x float);scale(3x float);mass(float)
+modelfile;;material(I,C,W...);position(3x float);rotation(3x float);scale(3x float);mass(float)
 ...
+(only texture parameter is optional)
