@@ -20,7 +20,7 @@ class EDEM
 {
 private:
     btRigidBody* rigidBody;
-    Material* material;
+    MMaterial* material;
     ITexture * texture;
     //set of pointers to neighbouring elements
 

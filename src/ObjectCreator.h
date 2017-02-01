@@ -23,16 +23,16 @@ using namespace gui;
 namespace gg {
 
 
-class ObjectCreator
+class MObjectCreator
 {
 public:
-    ObjectCreator(IrrlichtDevice*);
-    Object createRigidBody(std::vector<std::string>&&, ISceneNode* parrent = NULL);
-    Object createSolidGround(btRigidBody*); //size
+    MObjectCreator(IrrlichtDevice*);
+    MObject* createRigidBody(std::vector<std::string>&&, ISceneNode* parrent = NULL);
+    MObject* createSolidGround(btRigidBody*); //size
     static btBvhTriangleMeshShape* convertMesh(IMeshSceneNode*);
 private:
-    IrrlichtDevice* irrDevice;
-    const std::string media = "media/";
+    IrrlichtDevice* m_irrDevice;
+    const std::string m_media = "media/";
 };
 
 }

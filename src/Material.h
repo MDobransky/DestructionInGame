@@ -6,7 +6,7 @@
 namespace gg {
 
 
-class Material
+class MMaterial
 {
 private:
     //strength will represent breaking force of joint in edem simulation
@@ -14,8 +14,8 @@ private:
     uint_fast32_t density; //kg/m^3
 
 protected:
-    Material(double s,int d) : strength(s), density(d) {}
-    virtual ~Material() = 0;
+    MMaterial(double s,int d) : strength(s), density(d) {}
+    virtual ~MMaterial() = 0;
     //std::function
 public:
     inline double getStrength() { return strength; }

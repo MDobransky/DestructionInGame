@@ -14,42 +14,53 @@
 
 namespace gg {
 
-class Object
+class MObject
 {
 private:
-    std::unique_ptr<btRigidBody> rigidBody;
-    std::vector<EDEM> edems;
-    bool empty;
+    std::unique_ptr<btRigidBody> m_rigidBody;
+    ISceneNode* m_irrSceneNode;
+    std::vector<EDEM> m_edems;
+    bool m_empty;
 public:
-    btRigidBody* getRigid() { return rigidBody.get(); }
-    bool isEmpty() { return empty; }
+    btRigidBody* getRigid() { return m_rigidBody.get(); }
+    ISceneNode* getNode() { return m_irrSceneNode; }
+    bool isEmpty() { return m_empty; }
 
-    ~Object()
+    ~MObject()
     {
-        if(rigidBody.get() != nullptr)
+        if(m_rigidBody.get() != nullptr)
         {
-            if(rigidBody->getMotionState() != nullptr)
-                delete rigidBody->getMotionState();
-            if(rigidBody->getCollisionShape() != nullptr)
-                delete rigidBody->getCollisionShape();
-            ISceneNode *node = static_cast<ISceneNode *>(rigidBody->getUserPointer());
-            if(node) node->remove();
+            if(m_rigidBody->getMotionState() != nullptr)
+                delete m_rigidBody->getMotionState();
+            if(m_rigidBody->getCollisionShape() != nullptr)
+                delete m_rigidBody->getCollisionShape();
         }
     }
-    Object () : empty(true) {}
-    Object (btRigidBody* rb) : rigidBody(std::unique_ptr<btRigidBody>(rb))
+    MObject () : m_empty(true) {}
+
+   /* MObject (btRigidBody* rb) : m_rigidBody(std::unique_ptr<btRigidBody>(rb))
     {
-        empty = rigidBody == nullptr;
+        m_empty = m_rigidBody == nullptr;
     }
-    Object (Object&& newObj)
+*/
+    MObject (btRigidBody* rb, ISceneNode* sn) :
+        m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
+        m_irrSceneNode(sn)
     {
-        rigidBody = std::move(newObj.rigidBody);
-        edems = std::move(newObj.edems);
+        m_empty = m_rigidBody == nullptr;
     }
 
-    Object (Object&) = delete;
-    Object& operator= (Object&& newObj) = delete;
-    Object&  operator= (const Object&) = delete;
+
+    MObject (MObject&& newObj)
+    {
+        m_rigidBody = std::move(newObj.m_rigidBody);
+        m_edems = std::move(newObj.m_edems);
+        m_irrSceneNode = std::move(newObj.m_irrSceneNode);
+    }
+
+    MObject (MObject&) = delete;
+    MObject& operator= (MObject&& newObj) = delete;
+    MObject&  operator= (const MObject&) = delete;
 };
 
 }

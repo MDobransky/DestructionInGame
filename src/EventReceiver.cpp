@@ -1,6 +1,6 @@
 #include "EventReceiver.h"
 
-bool gg::EventReceiver::OnEvent(const SEvent &TEvent)
+bool gg::MEventReceiver::OnEvent(const SEvent &TEvent)
 {
 
     if(TEvent.EventType == EET_KEY_INPUT_EVENT)
@@ -10,56 +10,57 @@ bool gg::EventReceiver::OnEvent(const SEvent &TEvent)
         switch(TEvent.KeyInput.Key)
         {
             case KEY_ESCAPE:
-                game->Done = true;
+                m_game->m_Done = true;
             break;
             case KEY_KEY_C:
-                game->CreateStartScene();
+                m_game->CreateStartScene();
             break;
             case KEY_KEY_W:
             {
-                torqueVec = btVector3(-torque,0,0);
+                torqueVec = btVector3(-m_torque,0,0);
             }
             break;
             case KEY_KEY_S:
             {
-                torqueVec = btVector3(torque,0,0);
+                torqueVec = btVector3(m_torque,0,0);
             }
             break;
             case KEY_KEY_A:
             {
-                torqueVec = btVector3(0,-torque/5,0);
+                torqueVec = btVector3(0,-m_torque/5,0);
             }
             break;
             case KEY_KEY_D:
             {
-                torqueVec = btVector3(0,torque/5,0);
+                torqueVec = btVector3(0,m_torque/5,0);
             }
             break;
             case KEY_KEY_Q:
             {
-                torqueVec = btVector3(0,0,-torque);
+                torqueVec = btVector3(0,0,-m_torque);
             }
             break;
             case KEY_KEY_E:
             {
-                torqueVec = btVector3(0,0,torque);
+                torqueVec = btVector3(0,0,m_torque);
             }
             break;
             case KEY_LSHIFT:
             {
-                game->velocity -= 20;
-                if(game->velocity < -200) game->velocity = -200;
+                m_game->m_velocity -= 20;
+                if(m_game->m_velocity < -200) m_game->m_velocity = -200;
             }
             break;
             case KEY_LCONTROL:
             {
-                game->velocity += 20;
-                if(game->velocity > 0) game->velocity = 0;
+                m_game->m_velocity += 20;
+                if(m_game->m_velocity > 0) m_game->m_velocity = 0;
             }
             break;
             case KEY_SPACE:
             {
-                game->Shoot();
+                m_left = !m_left;
+                m_game->Shoot(m_left);
             }
             break;
             default:
@@ -67,10 +68,10 @@ bool gg::EventReceiver::OnEvent(const SEvent &TEvent)
             break;
         }
         //apply the effect of WASDQE
-        if(torqueVec != empty)
+        if(torqueVec != m_empty)
         {
-            game->btShip->setDamping(0,0.9);
-            game->btShip->setAngularVelocity(game->btShip->getWorldTransform().getBasis() * torqueVec + game->btShip->getAngularVelocity());
+            m_game->m_btShip->setDamping(0,0.9);
+            m_game->m_btShip->setAngularVelocity(m_game->m_btShip->getWorldTransform().getBasis() * torqueVec + m_game->m_btShip->getAngularVelocity());
         }
         return true;
     }

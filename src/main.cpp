@@ -2,7 +2,7 @@
 
 int main()
 {
-        gg::Game g;
+        gg::MGame g;
         g.Run();
 
 

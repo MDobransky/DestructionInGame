@@ -4,16 +4,16 @@
 #include <cmath>
 
 
-gg::ObjectCreator::ObjectCreator(IrrlichtDevice* irr) : irrDevice(irr)
+gg::MObjectCreator::MObjectCreator(IrrlichtDevice* irr) : m_irrDevice(irr)
 {
 }
 
-gg::Object gg::ObjectCreator::createRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
+gg::MObject* gg::MObjectCreator::createRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
 {
     if(items.size() != 13)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
-        return Object();
+        return new MObject();
     }
 
     float numbers[10];
@@ -27,9 +27,9 @@ gg::Object gg::ObjectCreator::createRigidBody(std::vector<std::string>&& items, 
     core::vector3df scale(numbers[6],numbers[7],numbers[8]);
     const btScalar Mass = numbers[9];
 
-    IMesh* mesh = irrDevice->getSceneManager()->getMesh((media + items[0]).c_str());
-    irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
-    IMeshSceneNode* Node = irrDevice->getSceneManager()->addMeshSceneNode( mesh );
+    IMesh* mesh = m_irrDevice->getSceneManager()->getMesh((m_media + items[0]).c_str());
+    m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
+    IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode( mesh );
 
     if(parent != NULL)
     {
@@ -40,7 +40,7 @@ gg::Object gg::ObjectCreator::createRigidBody(std::vector<std::string>&& items, 
     Node->setMaterialFlag(EMF_LIGHTING, 1);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
     if(items[1] != "")
-        Node->setMaterialTexture(0, irrDevice->getVideoDriver()->getTexture((media + items[1]).c_str()));
+        Node->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture((m_media + items[1]).c_str()));
 
     // Set the initial position of the object
     btTransform Transform;
@@ -50,7 +50,7 @@ gg::Object gg::ObjectCreator::createRigidBody(std::vector<std::string>&& items, 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
     // Create the shape
-    btCollisionShape *Shape = ObjectCreator::convertMesh(Node);
+    btCollisionShape *Shape = MObjectCreator::convertMesh(Node);
     Shape->setMargin( 0.05f );
 
     // Add mass
@@ -60,13 +60,14 @@ gg::Object gg::ObjectCreator::createRigidBody(std::vector<std::string>&& items, 
     // Create the rigid body object
     btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
+    MObject* obj = new MObject(rigidBody, Node);
     // Store a pointer to the irrlicht node so we can update it later
-    rigidBody->setUserPointer((void *)(Node));
+    rigidBody->setUserPointer((void *)(obj));
 
-    return std::move(Object(rigidBody));
+    return obj;
 }
 
-gg::Object gg::ObjectCreator::createSolidGround(btRigidBody * terrain)
+gg::MObject* gg::MObjectCreator::createSolidGround(btRigidBody * terrain)
 {
     //Get position and size from terrain
     btTransform t;
@@ -79,11 +80,11 @@ gg::Object gg::ObjectCreator::createSolidGround(btRigidBody * terrain)
     pos = btVector3(0,-1026+max.getY(),0);
 
     // Create an Irrlicht cube
-    scene::ISceneNode *Node = irrDevice->getSceneManager()->addCubeSceneNode(1.0f);
+    scene::ISceneNode *Node = m_irrDevice->getSceneManager()->addCubeSceneNode(1.0f);
     Node->setScale(size);
     Node->setMaterialFlag(video::EMF_LIGHTING, 1);
     Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
-    Node->setMaterialTexture(0, irrDevice->getVideoDriver()->getTexture("media/rust0.jpg"));
+    Node->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/rust0.jpg"));
 
     // Set the initial position of the object
     btTransform Transform;
@@ -105,13 +106,15 @@ gg::Object gg::ObjectCreator::createSolidGround(btRigidBody * terrain)
     btRigidBody *RigidBody = new btRigidBody(0, MotionState, Shape, LocalInertia);
     //RigidBody->setGravity(btVector3(0,0,0));
 
-    // Store a pointer to the irrlicht node so we can update it later
-    RigidBody->setUserPointer((void *)(Node));
+    MObject * obj = new MObject(RigidBody, Node);
 
-    return std::move(Object(RigidBody));
+    // Store a pointer to the irrlicht node so we can update it later
+    RigidBody->setUserPointer((void *)(obj));
+
+    return obj;
 }
 
-btBvhTriangleMeshShape* gg::ObjectCreator::convertMesh(IMeshSceneNode * node)
+btBvhTriangleMeshShape* gg::MObjectCreator::convertMesh(IMeshSceneNode * node)
 {
     btTriangleMesh* btMesh = new btTriangleMesh();
 

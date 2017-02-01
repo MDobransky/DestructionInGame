@@ -27,24 +27,25 @@ using namespace gui;
 namespace gg {
 
 
-class Loader
+class MLoader
 {
 public:
-    Loader(int, int, bool); //width, heigth, fullscreen
+    MLoader(int, int, bool); //width, heigth, fullscreen
 
     //takes the file describing what to load and returns irrlicht device and rigidbody objects
-    std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<Object>> load(std::string);
+    std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObject>>> load(std::string);
 
 private:
-    const std::string media = "media/";
-    bool load_vehicle(std::string&);
+    const std::string m_media = "media/";
     bool loadSkybox(std::vector<std::string>&&);
-    std::unique_ptr<IrrlichtDevice> irrDevice;
-    std::vector<Object> objects;
-    std::unique_ptr<ObjectCreator> objectCreator;
-    int width, heigth;
-    bool fullscreen;
     std::vector<std::string> split(std::stringstream&&);
+
+    std::unique_ptr<IrrlichtDevice> m_irrDevice;
+    std::vector<std::unique_ptr<gg::MObject>> m_objects;
+    std::unique_ptr<MObjectCreator> m_objectCreator;
+    int m_width, m_heigth;
+    bool m_fullscreen;
+
 
 
 };

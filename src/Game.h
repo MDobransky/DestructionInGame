@@ -23,11 +23,11 @@ using namespace gui;
 
 namespace gg {
 
-class EventReceiver;
+class MEventReceiver;
 
-class Game
+class MGame
 {
-    friend class EventReceiver;
+    friend class MEventReceiver;
 
 private:
     void CreateStartScene();
@@ -35,37 +35,41 @@ private:
     void CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScalar TMass);
     void UpdatePhysics(u32 TDeltaTime);
     void UpdateRender(btRigidBody *TObject);
-    void ClearObjects();
-    void Shoot();
+    void ClearAllObjects();
+    void ClearObject(btRigidBody*);
+    void Shoot(bool);
 
     //IrrlichtDevice *irrDevice;
-    btDiscreteDynamicsWorld *World;
+    btDiscreteDynamicsWorld *m_btWorld;
 
-    bool Done;
-    IVideoDriver *irrDriver;
-    ISceneManager *irrScene;
-    IGUIEnvironment *irrGUI;
-    ITimer *irrTimer;
-    list<btRigidBody *> Objects;
-    IMeshSceneNode* IShip;
-    ICameraSceneNode* Camera;
-    btRigidBody* btShip = 0;
-    float velocity;
-    std::unique_ptr<ObjectCreator> objectCreator;
+    bool m_Done;
+    IVideoDriver *m_irrDriver;
+    ISceneManager *m_irrScene;
+    IGUIEnvironment *m_irrGUI;
+    ITimer *m_irrTimer;
+    list<btRigidBody *> m_Objects;
+    ISceneNode* m_IShip;
+    ICameraSceneNode* m_Camera;
+    btRigidBody* m_btShip = 0;
+    float m_velocity;
+    std::unique_ptr<MObjectCreator> m_objectCreator;
 
-    std::unique_ptr<IrrlichtDevice> irrDevice;
-    std::unique_ptr<Loader> loader;
-    std::vector<Object> objects;
-    EventReceiver* events;
+    std::unique_ptr<IrrlichtDevice> m_irrDevice;
+    std::unique_ptr<MLoader> m_loader;
+    std::vector<std::unique_ptr<MObject>> m_objects;
+    MEventReceiver* m_events;
+    btTransform m_terrainTransform;
+    btVector3 m_minBound, m_maxBoud;
+
 
 
 public:
 
     void Run();
-    ~Game();
-    Game();
-    Game(const Game&) = delete;
-    Game& operator=(const Game&) = delete;
+    ~MGame();
+    MGame();
+    MGame(const MGame&) = delete;
+    MGame& operator=(const MGame&) = delete;
 
 };
 

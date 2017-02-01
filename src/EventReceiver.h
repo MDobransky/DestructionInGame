@@ -5,23 +5,23 @@
 
 namespace gg {
 
-class Game;
+class MGame;
 
-class EventReceiver : public IEventReceiver
+class MEventReceiver : public IEventReceiver
 {
 public:
-    EventReceiver(Game* g) : game(g) {}
-    ~EventReceiver() {}
+    MEventReceiver(MGame* g) : m_game(g) {}
+    ~MEventReceiver() {}
 
-    EventReceiver(const EventReceiver&) = delete;
-    EventReceiver& operator=(const EventReceiver&) = delete;
-
-    Game * game;
+    MEventReceiver(const MEventReceiver&) = delete;
+    MEventReceiver& operator=(const MEventReceiver&) = delete;
 
     virtual bool OnEvent(const SEvent &TEvent);
 private:
-    const btVector3 empty = btVector3(0,0,0);
-    const float torque = 0.5f;
+    const btVector3 m_empty = btVector3(0,0,0);
+    const float m_torque = 0.5f;
+    bool m_left = true;
+    MGame * m_game;
 };
 
 }
