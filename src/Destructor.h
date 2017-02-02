@@ -15,7 +15,8 @@ class MDestructor
 public:
     MDestructor();
     ~MDestructor();
-    static void resolveCollision(btRigidBody*,btRigidBody*);
+    static void resolveCollision(MObject*, btVector3&, MObject*, btVector3&);
+    
 
 };
 
