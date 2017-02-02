@@ -213,12 +213,15 @@ void  gg::MGame::UpdatePhysics(u32 TDeltaTime)
         const btRigidBody* obB = static_cast<const btRigidBody*>(contactManifold->getBody1());
         contactManifold->refreshContactPoints(obA->getWorldTransform(), obB->getWorldTransform());
 
-        btManifoldPoint& pt = contactManifold->getContactPoint(0);
-        btVector3 ptA = pt.getPositionWorldOnA();
-        btVector3 ptB = pt.getPositionWorldOnB();
+       // btManifoldPoint& pt = contactManifold->getContactPoint(0);
+        //btVector3 ptA = pt.getPositionWorldOnA();
+        //btVector3 ptB = pt.getPositionWorldOnB();
 
         if(obA == m_btShip || obB == m_btShip)
             std::cout << "Game over\n";
+        
+        MObject* objectA = static_cast<MObject*>(obA->getUserPointer());
+        MObject* objectB = static_cast<MObject*>(obB->getUserPointer());
 
         //World->removeCollisionObject(const_cast<btCollisionObject*>(obA));
     }
