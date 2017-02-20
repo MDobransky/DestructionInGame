@@ -14,14 +14,14 @@ LFLAGS = -L./bullet/lib  -L./Irrlicht/lib
 LIBS = -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath 
 
 # define the C++ source files
-SRCS = src/main.cpp src/Game.cpp src/EventReceiver.cpp
+SRCS = src/main.cpp src/Game.cpp src/EventReceiver.cpp src/CollisionResolver.cpp src/ObjectCreator.cpp
 
 # define the C++ object files 
 #
 
 .PHONY: depend clean
 
-build/game: build/game.o build/main.o build/event.o build/loader.o build/creator.o
+build/game: build/game.o build/main.o build/event.o build/loader.o build/creator.o build/collisionresolver.o
 	g++ $(CFLAGS) -o build/game build/*.o $(LFLAGS) $(LIBS) 
 build/game.o: src/Game.cpp
 	g++ $(CFLAGS) $(INCLUDES) -c src/Game.cpp -o build/game.o
@@ -33,6 +33,9 @@ build/loader.o: src/Loader.cpp
 	g++ $(CFLAGS) $(INCLUDES) -c src/Loader.cpp -o build/loader.o
 build/creator.o: src/ObjectCreator.cpp
 	g++ $(CFLAGS) $(INCLUDES) -c src/ObjectCreator.cpp -o build/creator.o
+build/collisionresolver.o: src/CollisionResolver.cpp
+	g++ $(CFLAGS) $(INCLUDES) -c src/CollisionResolver.cpp -o build/collisionresolver.o
+
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of

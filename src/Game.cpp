@@ -49,7 +49,7 @@ void gg::MGame::Run()
     btSequentialImpulseConstraintSolver *Solver = new btSequentialImpulseConstraintSolver();
     m_btWorld = new btDiscreteDynamicsWorld(Dispatcher, BroadPhase, Solver, CollisionConfiguration);
 
-    DebugDraw debugDraw(m_irrDevice.get());
+    MDebugDraw debugDraw(m_irrDevice.get());
        debugDraw.setDebugMode(
              btIDebugDraw::DBG_DrawWireframe |
              btIDebugDraw::DBG_DrawAabb |
@@ -84,6 +84,8 @@ void gg::MGame::Run()
         m_Camera->setTarget(m_IShip->getPosition());
 
         UpdatePhysics(DeltaTime);
+
+        m_Camera->setTarget(m_IShip->getPosition());
 
         m_irrDriver->beginScene(true, true, SColor(255, 20, 0, 0));
 
@@ -202,55 +204,23 @@ void  gg::MGame::UpdatePhysics(u32 TDeltaTime)
 {
 
     m_btWorld->stepSimulation(TDeltaTime * 0.001f, 60);
+    MCollisionResolver CollisionResolver(m_irrDevice.get(), m_btWorld);
 
+    std::vector<MObject*> toDelete(CollisionResolver.getDeleted());
 
-    int numManifolds = m_btWorld->getDispatcher()->getNumManifolds();
-    //For each contact manifold
-    for (int i = 0; i < numManifolds; i++)
-    {
-        btPersistentManifold* contactManifold = m_btWorld->getDispatcher()->getManifoldByIndexInternal(i);
-        const btRigidBody* obA = static_cast<const btRigidBody*>(contactManifold->getBody0());
-        const btRigidBody* obB = static_cast<const btRigidBody*>(contactManifold->getBody1());
-        contactManifold->refreshContactPoints(obA->getWorldTransform(), obB->getWorldTransform());
-
-       // btManifoldPoint& pt = contactManifold->getContactPoint(0);
-        //btVector3 ptA = pt.getPositionWorldOnA();
-        //btVector3 ptB = pt.getPositionWorldOnB();
-
-        if(obA == m_btShip || obB == m_btShip)
-            std::cout << "Game over\n";
-        
-        MObject* objectA = static_cast<MObject*>(obA->getUserPointer());
-        MObject* objectB = static_cast<MObject*>(obB->getUserPointer());
-
-        //World->removeCollisionObject(const_cast<btCollisionObject*>(obA));
-    }
-
-    std::vector<btRigidBody*> toDelete;
     // destroy objects out of bounds and relay the object's orientation to irrlicht
-    int i = 0;
     for(list<btRigidBody *>::Iterator Iterator = m_Objects.begin(); Iterator != m_Objects.end(); ++Iterator)
     {
         UpdateRender(*Iterator);
-       /* btVector3 pos = (*Iterator)->getCenterOfMassPosition();
-        pos = (*Iterator)->getWorldTransform().getBasis() * m_terrainTransform.getBasis() * pos;
-
-        if(pos.getX() < m_minBound.getX() || pos.getY() < m_minBound.getY() || pos.getZ() < m_minBound.getZ() ||
-                pos.getX() > m_maxBoud.getX() || pos.getY() > m_maxBoud.getY() || pos.getZ() > m_maxBoud.getZ())
-        {
-         //   toDelete.push_back(*Iterator);
-        }*/
     }
 
     if(!toDelete.empty())
     {
-        for(btRigidBody* obj : toDelete)
+        for(MObject* obj : toDelete)
         {
-            ClearObject(obj);
+            ClearObject(obj->getRigid());
         }
     }
-
-    m_Camera->setTarget(m_IShip->getPosition());
 }
 
 // Passes bullet's orientation to irrlicht

@@ -3,6 +3,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 #include "Edem.h"
+#include "Material.h"
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
@@ -19,8 +20,9 @@ class MObject
 private:
     std::unique_ptr<btRigidBody> m_rigidBody;
     ISceneNode* m_irrSceneNode;
-    std::vector<EDEM> m_edems;
+    std::vector<MEdem> m_edems;
     bool m_empty;
+    MMaterial* m_material;
 public:
     btRigidBody* getRigid() { return m_rigidBody.get(); }
     ISceneNode* getNode() { return m_irrSceneNode; }
@@ -38,11 +40,6 @@ public:
     }
     MObject () : m_empty(true) {}
 
-   /* MObject (btRigidBody* rb) : m_rigidBody(std::unique_ptr<btRigidBody>(rb))
-    {
-        m_empty = m_rigidBody == nullptr;
-    }
-*/
     MObject (btRigidBody* rb, ISceneNode* sn) :
         m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
         m_irrSceneNode(sn)
@@ -56,6 +53,7 @@ public:
         m_rigidBody = std::move(newObj.m_rigidBody);
         m_edems = std::move(newObj.m_edems);
         m_irrSceneNode = std::move(newObj.m_irrSceneNode);
+        m_material = &Material::Steel;
     }
 
     MObject (MObject&) = delete;

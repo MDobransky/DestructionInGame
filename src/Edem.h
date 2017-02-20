@@ -1,6 +1,6 @@
 #ifndef EDEM_H
 #define EDEM_H
-#include "Material.h"
+//#include "Material.h"
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
@@ -16,11 +16,11 @@ using namespace gui;
 namespace gg {
 
 //Extended Distinct Element Method' Element
-class EDEM
+class MEdem
 {
 private:
     btRigidBody* rigidBody;
-    MMaterial* material;
+ //   MMaterial* material;
     ITexture * texture;
     //set of pointers to neighbouring elements
 

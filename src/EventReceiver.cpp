@@ -3,7 +3,7 @@
 bool gg::MEventReceiver::OnEvent(const SEvent &TEvent)
 {
 
-    if(TEvent.EventType == EET_KEY_INPUT_EVENT)
+    if(TEvent.EventType == EET_KEY_INPUT_EVENT && TEvent.KeyInput.PressedDown)
     {
         btVector3 torqueVec(0,0,0);
 

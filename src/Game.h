@@ -4,6 +4,7 @@
 #include "Object.h"
 #include "EventReceiver.h"
 #include "Loader.h"
+#include "CollisionResolver.h"
 
 
 #include <irrlicht.h>
@@ -73,12 +74,12 @@ public:
 
 };
 
-class DebugDraw : public btIDebugDraw
+class MDebugDraw : public btIDebugDraw
 {
 
 public:
 
-   DebugDraw(irr::IrrlichtDevice* const device) :
+   MDebugDraw(irr::IrrlichtDevice* const device) :
       mode(DBG_NoDebug), driver(device->getVideoDriver()), logger(device->getLogger())
    {
 
