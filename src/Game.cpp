@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "Material.h"
 #include <iostream>
 #include <string>
 
@@ -10,7 +11,6 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
-
 gg::MGame::MGame()
 {
 }
@@ -20,9 +20,9 @@ gg::MGame::~MGame()
     delete m_events;
 }
 
-void gg::MGame::Run()
+void gg::MGame::Run(bool debug)
 {
-    m_events = new MEventReceiver(this);
+    m_events = new MEventReceiver();
     m_Done = false;
 
     m_loader = std::make_unique<MLoader>(1600,900,false);
@@ -62,35 +62,38 @@ void gg::MGame::Run()
 
        irr::video::SMaterial debugMat;
        debugMat.Lighting = false;
-       const bool debug_draw_bullet = false;
-
+       const bool debug_draw_bullet = debug;
 
 
     CreateStartScene();
 
+    m_velocity = 0;
 
-    m_velocity = -50;
 
     // Main loop
     u32 TimeStamp = m_irrTimer->getTime(), DeltaTime = 0;
+    u32 realStamp = m_irrTimer->getRealTime();
     while(!m_Done) {
         m_irrDevice->setWindowCaption(std::to_wstring(m_irrDriver->getFPS()).c_str());
 
         DeltaTime = m_irrTimer->getTime() - TimeStamp;
         TimeStamp = m_irrTimer->getTime();
 
-        m_btShip->setLinearVelocity(m_btShip->getWorldTransform().getBasis() * (btVector3( 0.f, -9.8f, m_velocity )));
+        m_btShip->setLinearVelocity(m_btShip->getWorldTransform().getBasis() * (btVector3( 0.f, 0.0f, m_velocity ))); //GRAVITY HERE
+        ApplyEvents();
 
         m_Camera->setTarget(m_IShip->getPosition());
 
+        u32 b =  m_irrTimer->getRealTime();
         UpdatePhysics(DeltaTime);
+        std::cout << "simulation time: " << m_irrTimer->getRealTime() - b << "\n";
 
         m_Camera->setTarget(m_IShip->getPosition());
 
         m_irrDriver->beginScene(true, true, SColor(255, 20, 0, 0));
-
+        b =  m_irrTimer->getRealTime();
         m_irrScene->drawAll();
-
+       std::cout << "render time: " << m_irrTimer->getRealTime() - b << "\n";
         if (debug_draw_bullet)
         {
             m_irrDriver->setMaterial(debugMat);
@@ -100,6 +103,9 @@ void gg::MGame::Run()
         m_irrGUI->drawAll();
         m_irrDriver->endScene();
         m_irrDevice->run();
+
+        std::cout << "frame time: " << m_irrTimer->getRealTime() - realStamp << "\n";
+        realStamp = m_irrTimer->getRealTime();
     }
 
     //ClearObjects();
@@ -132,6 +138,15 @@ void  gg::MGame::CreateStartScene()
         m_btWorld->addRigidBody(m_objects[i]->getRigid());
         m_Objects.push_back(m_objects[i]->getRigid());
         m_objects[i]->getRigid()->activate();
+        if(i == 2)
+        {
+            m_objectCreator = std::make_unique<MObjectCreator>(m_irrDevice.get());
+            std::vector<std::unique_ptr<MObject>> shards = m_objectCreator->decompose(m_objects[2].get());
+            for(auto&& s : shards)
+            {
+                m_btWorld->addRigidBody(s->getRigid());
+            }
+        }
     }
 
     m_terrainTransform.setIdentity();
@@ -148,6 +163,70 @@ void  gg::MGame::CreateStartScene()
 
     //rendered distance
     m_Camera->setFarValue(100000);
+}
+
+void  gg::MGame::ApplyEvents()
+{
+    const float torque = 0.2f;
+
+    if(m_events->keyDown('W'))
+    {
+        m_btShip->setDamping(0,0.9);
+        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(-torque,0,0) + m_btShip->getAngularVelocity());
+    }
+
+    if(m_events->keyDown('S'))
+    {
+        m_btShip->setDamping(0,0.9);
+        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(torque,0,0) + m_btShip->getAngularVelocity());
+    }
+
+    if(m_events->keyDown('A'))
+    {
+        m_btShip->setDamping(0,0.9);
+        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,-torque/2,0) + m_btShip->getAngularVelocity());
+    }
+
+    if(m_events->keyDown('D'))
+    {
+        m_btShip->setDamping(0,0.9);
+        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,torque/2,0) + m_btShip->getAngularVelocity());
+    }
+
+    if(m_events->keyDown('Q'))
+    {
+        m_btShip->setDamping(0,0.9);
+        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,0,-torque) + m_btShip->getAngularVelocity());
+    }
+
+    if(m_events->keyDown('E'))
+    {
+        m_btShip->setDamping(0,0.9);
+        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,0,torque) + m_btShip->getAngularVelocity());
+    }
+
+    if(m_events->keyDown('Z'))
+    {
+        m_velocity -= 15;
+        if(m_velocity < -200) m_velocity = -200;
+    }
+
+    if(m_events->keyDown('X'))
+    {
+        m_velocity += 15;
+        if(m_velocity > 0) m_velocity = 0;
+    }
+
+    if(m_events->keyDown(irr::KEY_SPACE))
+    {
+        m_left = !m_left;
+        Shoot(m_left);
+    }
+
+    if(m_events->keyDown(irr::KEY_ESCAPE))
+    {
+        m_Done = true;
+    }
 }
 
 void  gg::MGame::Shoot(bool left)
@@ -185,7 +264,7 @@ void  gg::MGame::Shoot(bool left)
     //shoot it with speed
     bullet->applyImpulse(m_btShip->getWorldTransform().getBasis() * btVector3(0,0,-1000), m_btShip->getCenterOfMassPosition());
 
-    MObject* obj = new MObject(bullet, Node);
+    MObject* obj = new MObject(bullet, Node, &Material::Shot);
 
     // Store a pointer to the irrlicht node so we can update it later
     bullet->setUserPointer((void *)(obj));
@@ -202,13 +281,14 @@ void  gg::MGame::Shoot(bool left)
 // - TDeltaTime tells the simulation how much time has passed since the last frame so the simulation can run independently of the frame rate.
 void  gg::MGame::UpdatePhysics(u32 TDeltaTime)
 {
+    u32 b = m_irrTimer->getRealTime();
+    m_btWorld->stepSimulation(TDeltaTime * 0.001f, 1, 1.0/25.0);
+    std::cout << "bullet step time: " << m_irrTimer->getRealTime() - b << "\n";
 
-    m_btWorld->stepSimulation(TDeltaTime * 0.001f, 60);
     MCollisionResolver CollisionResolver(m_irrDevice.get(), m_btWorld);
 
     std::vector<MObject*> toDelete(CollisionResolver.getDeleted());
 
-    // destroy objects out of bounds and relay the object's orientation to irrlicht
     for(list<btRigidBody *>::Iterator Iterator = m_Objects.begin(); Iterator != m_Objects.end(); ++Iterator)
     {
         UpdateRender(*Iterator);
@@ -227,18 +307,19 @@ void  gg::MGame::UpdatePhysics(u32 TDeltaTime)
 void  gg::MGame::UpdateRender(btRigidBody *TObject)
 {
     ISceneNode *Node = (static_cast<MObject *>(TObject->getUserPointer()))->getNode();
-
-    // Set position
-    btVector3 Point = TObject->getCenterOfMassPosition();
-    Node->setPosition(vector3df((f32)Point[0], (f32)Point[1], (f32)Point[2]));
-
-    // Set rotation
-    vector3df Euler;
-    const btQuaternion& TQuat = TObject->getOrientation();
-    quaternion q(TQuat.getX(), TQuat.getY(), TQuat.getZ(), TQuat.getW());
-    q.toEuler(Euler);
-    Euler *= RADTODEG;
-    Node->setRotation(Euler);
+    if(Node)
+    {
+        // Set position
+        btVector3 Point = TObject->getCenterOfMassPosition();
+        Node->setPosition(vector3df((f32)Point[0], (f32)Point[1], (f32)Point[2]));
+        // Set rotation
+        vector3df Euler;
+        const btQuaternion& TQuat = TObject->getOrientation();
+        quaternion q(TQuat.getX(), TQuat.getY(), TQuat.getZ(), TQuat.getW());
+        q.toEuler(Euler);
+        Euler *= RADTODEG;
+        Node->setRotation(Euler);
+    }
 }
 
 // Removes all objects from the world

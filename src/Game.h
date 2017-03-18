@@ -15,12 +15,7 @@
 #include <utility>
 #include <iostream>
 
-using namespace irr;
-using namespace core;
-using namespace scene;
-using namespace video;
-using namespace io;
-using namespace gui;
+
 
 namespace gg {
 
@@ -28,45 +23,46 @@ class MEventReceiver;
 
 class MGame
 {
+
     friend class MEventReceiver;
 
 private:
     void CreateStartScene();
-    std::tuple<btRigidBody*, IMeshSceneNode*> CreateShip(const btVector3 &TPosition);
-    void CreateBox(const btVector3 &TPosition, const core::vector3df &TScale, btScalar TMass);
-    void UpdatePhysics(u32 TDeltaTime);
+    std::tuple<btRigidBody*, irr::scene::IMeshSceneNode*> CreateShip(const btVector3 &TPosition);
+    void CreateBox(const btVector3 &TPosition, const irr::core::vector3df &TScale, btScalar TMass);
+    void UpdatePhysics(irr::u32 TDeltaTime);
     void UpdateRender(btRigidBody *TObject);
     void ClearAllObjects();
     void ClearObject(btRigidBody*);
     void Shoot(bool);
+    void ApplyEvents();
 
     //IrrlichtDevice *irrDevice;
     btDiscreteDynamicsWorld *m_btWorld;
 
     bool m_Done;
-    IVideoDriver *m_irrDriver;
-    ISceneManager *m_irrScene;
-    IGUIEnvironment *m_irrGUI;
-    ITimer *m_irrTimer;
-    list<btRigidBody *> m_Objects;
-    ISceneNode* m_IShip;
-    ICameraSceneNode* m_Camera;
+    bool m_left = false;
+    irr::video::IVideoDriver *m_irrDriver;
+    irr::scene::ISceneManager *m_irrScene;
+    irr::gui::IGUIEnvironment *m_irrGUI;
+    irr::ITimer *m_irrTimer;
+    irr::core::list<btRigidBody *> m_Objects;
+    irr::scene::ISceneNode* m_IShip;
+    irr::scene::ICameraSceneNode* m_Camera;
     btRigidBody* m_btShip = 0;
     float m_velocity;
     std::unique_ptr<MObjectCreator> m_objectCreator;
 
-    std::unique_ptr<IrrlichtDevice> m_irrDevice;
+    std::unique_ptr<irr::IrrlichtDevice> m_irrDevice;
     std::unique_ptr<MLoader> m_loader;
     std::vector<std::unique_ptr<MObject>> m_objects;
     MEventReceiver* m_events;
     btTransform m_terrainTransform;
     btVector3 m_minBound, m_maxBoud;
 
-
-
 public:
 
-    void Run();
+    void Run(bool debug);
     ~MGame();
     MGame();
     MGame(const MGame&) = delete;

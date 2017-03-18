@@ -10,29 +10,41 @@
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
 #include <btBulletDynamicsCommon.h>
+#include <LinearMath/btAlignedObjectArray.h>
+#include <LinearMath/btConvexHullComputer.h>
+#include <LinearMath/btQuaternion.h>
 
 #include <string>
-
-using namespace irr;
-using namespace core;
-using namespace scene;
-using namespace video;
-using namespace io;
-using namespace gui;
+#include <set>
 
 namespace gg {
 
-
 class MObjectCreator
 {
+
 public:
-    MObjectCreator(IrrlichtDevice*);
-    MObject* createRigidBody(std::vector<std::string>&&, ISceneNode* parrent = NULL);
+    MObjectCreator(irr::IrrlichtDevice*);
+    std::vector<MObject*> createDestructibleBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
+    MObject* createMeshRigidBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
+    MObject* createConvexRigidBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
     MObject* createSolidGround(btRigidBody*); //size
-    static btBvhTriangleMeshShape* convertMesh(IMeshSceneNode*);
+    static btBvhTriangleMeshShape* convertMesh(irr::scene::IMeshSceneNode*);
+    static btConvexHullShape* convertMeshToHull(irr::scene::IMeshSceneNode *);
+    std::vector<std::unique_ptr<MObject>> decompose(MObject*);
 private:
-    IrrlichtDevice* m_irrDevice;
+    class tetrahedron
+    {
+    public:
+        btVector3 points[4];
+        int neighbours[4];
+        btVector3 center;
+    };
+
+    irr::IrrlichtDevice* m_irrDevice;
     const std::string m_media = "media/";
+    std::vector<std::unique_ptr<MObject>> voronoiBBShatter(const btAlignedObjectArray<btVector3>&, const btVector3&, const btVector3&, const btQuaternion&, btScalar);
+    std::vector<btVector3> getVertices(irr::scene::IMeshSceneNode*);
+    std::vector<btVector3> getVertices(btConvexHullShape*);
 };
 
 }

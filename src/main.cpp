@@ -1,9 +1,16 @@
+#include <string>
+
 #include "Game.h"
 
-int main()
+int main(int argc, char** argv)
 {
+    bool debug;
+    for (int i = 0; i < argc; ++i)
+    {
+            debug = std::string(argv[i]) == "-d";
+    }
         gg::MGame g;
-        g.Run();
+        g.Run(debug);
 
 
 return 0;

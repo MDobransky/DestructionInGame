@@ -17,15 +17,15 @@ namespace gg {
 class MCollisionResolver
 {
 public:
-    MCollisionResolver(IrrlichtDevice*, btDiscreteDynamicsWorld*);
+    MCollisionResolver(irr::IrrlichtDevice*, btDiscreteDynamicsWorld*);
     ~MCollisionResolver();
     std::vector<MObject*> getDeleted();
-    void resolveCollision(MObject*, btVector3&, MObject*, btVector3&);
+    void resolveCollision(MObject*, btVector3&, MObject*, btVector3&, btScalar&);
 
 private:
     void resolveAll();
 
-    IrrlichtDevice* m_irrDevice;
+    irr::IrrlichtDevice* m_irrDevice;
     btDiscreteDynamicsWorld * m_btWorld;
     std::vector<MObject*> m_toDelete;
 };

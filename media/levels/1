@@ -1,3 +1,5 @@
 skybox/nevada_up.tga;skybox/nevada_dn.tga;skybox/nevada_rt.tga;skybox/nevada_lf.tga;skybox/nevada_ft.tga;skybox/nevada_bk.tga
-untitled.obj;mountains.jpg;R;0;-1000.0;0;0;0;0;3;3;3;0
-xwing.3ds;;I;0;0;0;0;0;0;0.1;0.1;0.1;5.5
+untitled.obj;mountains.jpg;D;0;-1000.0;0;0;0;0;3;3;3;0
+xwing.3ds;;S;0;0;600;0;0;0;0.1;0.1;0.1;5.5
+arch.ply;;C;0;0;500;0;0;0;100;100;100;0
+

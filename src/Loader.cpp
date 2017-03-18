@@ -2,6 +2,13 @@
 #include <fstream>
 #include <sstream>
 
+using namespace irr;
+using namespace core;
+using namespace scene;
+using namespace video;
+using namespace io;
+using namespace gui;
+
 gg::MLoader::MLoader(int w, int h , bool full) : m_width(w), m_heigth(h), m_fullscreen(full)
 {
 
@@ -24,19 +31,32 @@ std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObj
     if(!loadSkybox(split(std::stringstream(current_line))))
         std::cerr << "Loading skybox failed!\n";
 
+    int i = 0;
     //read otherlines --terrain and models
+    while(i < 2 && std::getline(fin, current_line))
+    {
+        if(current_line != "")
+        {
+            i++;
+            MObject* obj = m_objectCreator->createMeshRigidBody(split(std::stringstream(current_line)));
+            if(obj)
+            {
+                m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+            }
+        }
+    }
+
     while(std::getline(fin, current_line))
     {
         if(current_line != "")
         {
-            if(m_objects.size() > 1) //parrent is terrain but not to itself or vehicle
+            std::vector<MObject*> objs = m_objectCreator->createDestructibleBody(split(std::stringstream(current_line)));
+            for(auto&& obj : objs)
             {
-                ISceneNode* parent = (static_cast<MObject *>(m_objects[0]->getRigid()->getUserPointer()))->getNode();
-                m_objects.push_back(std::unique_ptr<gg::MObject>(m_objectCreator->createRigidBody(split(std::stringstream(current_line)),parent)));
-            }
-            else
-            {
-                m_objects.push_back(std::unique_ptr<gg::MObject>(m_objectCreator->createRigidBody(split(std::stringstream(current_line)))));
+                if(obj)
+                {
+                    m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+                }
             }
         }
     }

@@ -1,5 +1,12 @@
 #include "CollisionResolver.h"
 
+using namespace irr;
+using namespace core;
+using namespace scene;
+using namespace video;
+using namespace io;
+using namespace gui;
+
 gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice *irrDev, btDiscreteDynamicsWorld *btDDW) : m_irrDevice(irrDev), m_btWorld(btDDW)
 {
 
@@ -15,13 +22,17 @@ std::vector<gg::MObject *> gg::MCollisionResolver::getDeleted()
     return std::move(m_toDelete);
 }
 
-void gg::MCollisionResolver::resolveCollision(MObject *, btVector3 &, MObject *, btVector3 &)
+void gg::MCollisionResolver::resolveCollision(MObject * A, btVector3 & pA, MObject * B, btVector3 & pB, btScalar & impulse)
 {
-
+    
+    //get energy
+    //apply destruction to objA
+    //apply destruction to objB
 }
 
 void gg::MCollisionResolver::resolveAll()
 {
+    /*
     int numManifolds = m_btWorld->getDispatcher()->getNumManifolds();
     //For each contact manifold
     for (int i = 0; i < numManifolds; i++)
@@ -34,13 +45,14 @@ void gg::MCollisionResolver::resolveAll()
         btManifoldPoint& pt = contactManifold->getContactPoint(0);
         btVector3 ptA = pt.getPositionWorldOnA();
         btVector3 ptB = pt.getPositionWorldOnB();
-        btVector3& normalOnB = pt.m_normalWorldOnB;
+        //btVector3& normalOnB = pt.m_normalWorldOnB;
+        btScalar impulse = pt.getAppliedImpulse();
 
         MObject* objectA = static_cast<MObject*>(obA->getUserPointer());
         MObject* objectB = static_cast<MObject*>(obB->getUserPointer());
 
-        resolveCollision(objectA, ptA, objectB, ptB);
+        resolveCollision(objectA, ptA, objectB, ptB, impulse);
 
-    }
+    }*/
 }
 

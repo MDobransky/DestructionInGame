@@ -1,14 +1,228 @@
 #include "ObjectCreator.h"
+#include "Material.h"
 
 #include <iostream>
 #include <cmath>
+#include <map>
 
+#include "tetgen/tetgen.h"
+
+using namespace irr;
+using namespace core;
+using namespace scene;
+using namespace video;
+using namespace io;
+using namespace gui;
 
 gg::MObjectCreator::MObjectCreator(IrrlichtDevice* irr) : m_irrDevice(irr)
 {
 }
 
-gg::MObject* gg::MObjectCreator::createRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
+std::vector<gg::MObject*> gg::MObjectCreator::createDestructibleBody(std::vector<std::string>&& items, ISceneNode *parent)
+{
+    std::vector<MObject*> objects;
+
+    if(items.size() != 13)
+    {
+        std::cerr << "Object failed to load: wrong number of parameters\n";
+        return objects;
+    }
+
+    float numbers[10];
+    for(int i = 0; i < 10; i++)
+    {
+        numbers[i] = std::stof(items[i+3]);
+    }
+
+    std::string input(m_media+items[0]);
+    //std::string texture(items[1]);
+    btVector3 position(numbers[0],numbers[1],numbers[2]);
+    core::vector3df rotation(numbers[3],numbers[4],numbers[5]);
+    core::vector3df scale(numbers[6],numbers[7],numbers[8]);
+    btScalar Mass = numbers[9];
+//GENERATE TETRAHEDRONS
+    tetgenio in,out;
+    in.firstnumber = 0;
+    in.load_ply(const_cast<char*>(input.c_str()));
+    char* opt = const_cast<char*>(std::string("pnCq1./4").c_str());
+    tetrahedralize(opt, &in, &out);
+
+//make tetrahedron structures
+    std::vector<tetrahedron> shards;
+
+    for(int i = out.firstnumber; i < out.numberofcorners*out.numberoftetrahedra; i += out.numberofcorners)
+    {
+        btVector3 center(0,0,0);
+        shards.push_back(tetrahedron());
+        for(int j = 0; j < 4; j++)
+        {
+            btVector3 point(out.pointlist[out.tetrahedronlist[i+j]*3],
+                                   out.pointlist[out.tetrahedronlist[i+j]*3+1],
+                                   out.pointlist[out.tetrahedronlist[i+j]*3+2]);
+            center += point;
+            shards.back().points[j] = point;
+            shards.back().neighbours[j] = out.neighborlist[i+j];
+        }
+        shards.back().center = btVector3(center/4);
+    }
+//make objects
+    for(int i = 0; i < out.numberoftetrahedra; i++)
+    {
+    //generate irrlicht mesh
+        SMesh* mesh = new SMesh();
+        SMeshBuffer *buf = 0;
+        buf = new SMeshBuffer();
+        mesh->addMeshBuffer(buf);
+        buf->drop();
+
+        buf->Vertices.reallocate(4);
+        buf->Vertices.set_used(4);
+        buf->Indices.reallocate(12);
+        buf->Indices.set_used(12);
+
+        for(int j = 0; j < 4; j++)
+        {
+            buf->Vertices[j] = S3DVertex(float(shards[i].points[j].getX()),
+                                         float(shards[i].points[j].getY()),
+                                         float(shards[i].points[j].getZ()),
+                                         shards[i].center.getX(),
+                                         shards[i].center.getY(),
+                                         shards[i].center.getZ(),
+                                         video::SColor(100,100,100,100), 0, 1);
+        }
+        int indices[] = {1,0,2,1,3,0,1,2,3,0,3,2};
+        for(int j = 0; j < 12; j++)
+        {
+            buf->Indices[j] = indices[j];
+        }
+        buf->recalculateBoundingBox();
+
+        m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,vector3df(3,3,3));
+        IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
+
+        Node->setMaterialType(EMT_SOLID);
+        Node->setMaterialFlag(EMF_LIGHTING, 1);
+        Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+
+    //generate bullet body
+        // Set the initial position of the object
+        btTransform Transform;
+        Transform.setIdentity();
+        Transform.setOrigin(position);
+        btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
+
+        // Create the shape
+        btCollisionShape *Shape = MObjectCreator::convertMeshToHull(Node);
+        Shape->setMargin( 0.05f );
+
+        // Add mass
+        Mass = 5;
+        btVector3 localInertia;
+        Shape->calculateLocalInertia(Mass, localInertia);
+
+        // Create the rigid body object
+        btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
+
+        MMaterial* material = Material::getMaterial(items[2][0]);
+
+        MObject* obj = new MObject(rigidBody, Node, material);
+
+        rigidBody->setUserPointer((void *)(obj));
+        objects.push_back(obj);
+    }
+
+//create constraints -- not here, in game::startscene
+/*
+    for(int a = 0; a < shards.size(); a++)
+    {
+        for(int j = 0; j < 4; j++)
+        {
+            int b = shards[i].neighbours[j];
+            if(b != -1)
+            {
+                btRigidBody bodyA = objects[a]->getRigid();
+                btRigidBody bodyB = objects[b]->getRigid();
+                btTransform tr;
+                tr.setIdentity();
+                btVector3 contactPosWorld = manifold->getContactPoint(minIndex).m_positionWorldOnA;
+                tr.setOrigin(contactPosWorld);
+                trA = bodyA->getWorldTransform().inverse()*tr;
+                btFixedConstraint* fixed = new btFixedConstraint(*body0,*body1,tr,tr);
+                fixed->setBreakingImpulseThreshold(10);
+                fixed ->setOverrideNumSolverIterations(30);
+            }
+
+        }
+    }
+*/
+    return std::move(objects);
+}
+gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
+{
+    if(items.size() != 13)
+    {
+        std::cerr << "Object failed to load: wrong number of parameters\n";
+        return new MObject();
+    }
+
+    float numbers[10];
+    for(int i = 0; i < 10; i++)
+    {
+        numbers[i] = std::stof(items[i+3]);
+    }
+
+    std::string input(items[0]);
+    std::string texture(items[1]);
+    //char material(items[2][0]);
+    btVector3 position(numbers[0],numbers[1],numbers[2]);
+    core::vector3df rotation(numbers[3],numbers[4],numbers[5]);
+    core::vector3df scale(numbers[6],numbers[7],numbers[8]);
+    const btScalar Mass = numbers[9];
+
+
+    IMesh* mesh = m_irrDevice->getSceneManager()->getMesh((m_media + items[0]).c_str());
+    m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
+    IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode( mesh );
+
+    if(parent != NULL)
+    {
+        Node->setParent(parent);
+        Node->setRotation(rotation);
+    }
+    Node->setMaterialType(EMT_SOLID);
+    Node->setMaterialFlag(EMF_LIGHTING, 1);
+    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+    if(items[1] != "")
+        Node->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture((m_media + items[1]).c_str()));
+
+    // Set the initial position of the object
+    btTransform Transform;
+    Transform.setIdentity();
+    Transform.setOrigin(position);
+
+    btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
+
+    // Create the shape
+    btCollisionShape *Shape = MObjectCreator::convertMesh(Node);
+    Shape->setMargin( 0.05f );
+
+    // Add mass
+    btVector3 localInertia;
+    Shape->calculateLocalInertia(Mass, localInertia);
+
+    // Create the rigid body object
+    btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
+
+    MMaterial* material = Material::getMaterial(items[2][0]);
+
+    MObject* obj = new MObject(rigidBody, Node, material);
+    // Store a pointer to the irrlicht node so we can update it later
+    rigidBody->setUserPointer((void *)(obj));
+
+    return obj;
+}
+
+gg::MObject* gg::MObjectCreator::createConvexRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
 {
     if(items.size() != 13)
     {
@@ -49,8 +263,16 @@ gg::MObject* gg::MObjectCreator::createRigidBody(std::vector<std::string>&& item
 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
+    btConvexHullShape* hull = new btConvexHullShape();
+
+    std::vector<btVector3> vertices(getVertices(Node));
+    for (auto&& v : vertices)
+    {
+        hull->addPoint(v);
+    }
+
     // Create the shape
-    btCollisionShape *Shape = MObjectCreator::convertMesh(Node);
+    btCollisionShape* Shape = hull;
     Shape->setMargin( 0.05f );
 
     // Add mass
@@ -60,7 +282,9 @@ gg::MObject* gg::MObjectCreator::createRigidBody(std::vector<std::string>&& item
     // Create the rigid body object
     btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
-    MObject* obj = new MObject(rigidBody, Node);
+    MMaterial* material = Material::getMaterial(items[2][0]);
+
+    MObject* obj = new MObject(rigidBody, Node, material);
     // Store a pointer to the irrlicht node so we can update it later
     rigidBody->setUserPointer((void *)(obj));
 
@@ -106,7 +330,7 @@ gg::MObject* gg::MObjectCreator::createSolidGround(btRigidBody * terrain)
     btRigidBody *RigidBody = new btRigidBody(0, MotionState, Shape, LocalInertia);
     //RigidBody->setGravity(btVector3(0,0,0));
 
-    MObject * obj = new MObject(RigidBody, Node);
+    MObject * obj = new MObject(RigidBody, Node, &Material::Magic);
 
     // Store a pointer to the irrlicht node so we can update it later
     RigidBody->setUserPointer((void *)(obj));
@@ -118,9 +342,9 @@ btBvhTriangleMeshShape* gg::MObjectCreator::convertMesh(IMeshSceneNode * node)
 {
     btTriangleMesh* btMesh = new btTriangleMesh();
 
-    for (irr::u32 i = 0; i < node->getMesh()->getMeshBufferCount(); i++)
+    for (irr::u32 j = 0; j < node->getMesh()->getMeshBufferCount(); j++)
     {
-        IMeshBuffer* meshBuffer = node->getMesh()->getMeshBuffer(i);
+        IMeshBuffer* meshBuffer = node->getMesh()->getMeshBuffer(j);
         S3DVertex* vertices = (S3DVertex*)meshBuffer->getVertices();
         u16* indices = meshBuffer->getIndices();
 
@@ -137,6 +361,114 @@ btBvhTriangleMeshShape* gg::MObjectCreator::convertMesh(IMeshSceneNode * node)
     return new btBvhTriangleMeshShape( btMesh, true );
 }
 
+btConvexHullShape* gg::MObjectCreator::convertMeshToHull(IMeshSceneNode * node)
+{
+    btConvexHullShape* hull= new btConvexHullShape();
+    for (irr::u32 j = 0; j < node->getMesh()->getMeshBufferCount(); j++)
+    {
+        IMeshBuffer* meshBuffer = node->getMesh()->getMeshBuffer(j);
+        S3DVertex* vertices = (S3DVertex*)meshBuffer->getVertices();
+        for(irr::u32 i = 0; i < meshBuffer->getVertexCount(); i++)
+        {
+            vector3df vertex = vertices[i].Pos;
+            hull->addPoint(btVector3(vertex.X, vertex.Y, vertex.Z));
+        }
+    }
+    return hull;
+}
+
+std::vector<std::unique_ptr<gg::MObject>> gg::MObjectCreator::decompose(gg::MObject * object)
+{
+    //generate points inside body
+   // size_t parts = 100;
+    //btRigidBody* source = object->getRigid();
+    //std::vector<btVector3> points;
+    //std::vector<btVector3> vertices(getVertices((btConvexHullShape*)source->getCollisionShape()));
+    //size_t n = vertices.size();
+/*
+    for (size_t i = 0; i < parts; i++)
+    {
+        btVector3 point;
+
+        do
+        {
+        //pick 2 point and random point on line between them
+        size_t v1 = rand() % n;
+        size_t v2 = rand() % n;
+
+        float distance = rand() / (static_cast <float> (RAND_MAX/vertices[v1].distance(vertices[v2])));
+        point = vertices[v2] + btVector3(vertices[v1] - vertices[v2]).normalize() * distance;
+
+        } while(point.getX() != point.getX() && point.getY() != point.getY() && point.getZ() != point.getZ());
+
+        points.push_back(point);
+
+        //scene::IMeshSceneNode *Node3 = m_irrDevice->getSceneManager()->addSphereSceneNode(1.0f);
+        //Node3->setPosition(vector3df(point.getX(),point.getY(),point.getZ()));
+    }
+    */
+/*
+    typedef CGAL::Exact_predicates_exact_constructions_kernel K;
+    typedef CGAL::Delaunay_triangulation_3<K, CGAL::Fast_location> Delaunay;
+    typedef Delaunay::Point Point;
+
+    std::vector<Point> P;
+
+      for (auto&& v : vertices)
+      {
+          P.push_back(Point(v.getX(), v.getY(), v.getX()));
+          //std::cout << v.getX() << " " << v.getY() << " " << v.getX() << "\n";
+      }
+      for (auto&& v : points)
+      {
+          P.push_back(Point(v.getX(), v.getY(), v.getX()));
+          //std::cout << v.getX() << " " << v.getY() << " " << v.getX() << "\n";
+      }
+      Delaunay T(P.begin(), P.end());
+      T.finite_facets_begin();
+*/
+    //make new convex shards
+
+    //glue shards together
+
+    return std::move(std::vector<std::unique_ptr<gg::MObject>>());
+}
+
+std::vector<btVector3> gg::MObjectCreator::getVertices(IMeshSceneNode* Node)
+{
+    std::vector<btVector3> btvertices;
+    for (irr::u32 i = 0; i < Node->getMesh()->getMeshBufferCount(); i++)
+    {
+        IMeshBuffer* meshBuffer = Node->getMesh()->getMeshBuffer(i);
+        S3DVertex* vertices = (S3DVertex*)meshBuffer->getVertices();
+        u16* indices = meshBuffer->getIndices();
+
+        for (u32 i = 0; i < meshBuffer->getIndexCount(); i += 3)
+        {
+            vector3df triangle1 = vertices[indices[i]].Pos;
+            vector3df triangle2 = vertices[indices[i + 1]].Pos;
+            vector3df triangle3 = vertices[indices[i + 2]].Pos;
+            btvertices.emplace_back(triangle1.X, triangle1.Y, triangle1.Z);
+            btvertices.emplace_back(triangle2.X, triangle2.Y, triangle2.Z);
+            btvertices.emplace_back(triangle3.X, triangle3.Y, triangle3.Z);
+        }
+    }
+    return std::move(btvertices);
+}
+
+std::vector<btVector3> gg::MObjectCreator::getVertices(btConvexHullShape* hull)
+{
+    btVector3* points = hull->getUnscaledPoints();
+    size_t n = hull->getNumPoints();
+    std::vector<btVector3> vertices;
+
+    for(size_t i = 0; i < n; i++)
+    {
+        vertices.push_back(*points);
+        points++;
+    }
+    return std::move(vertices);
+}
 
 
 

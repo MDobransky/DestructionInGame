@@ -19,13 +19,14 @@ class MObject
 {
 private:
     std::unique_ptr<btRigidBody> m_rigidBody;
-    ISceneNode* m_irrSceneNode;
+    irr::scene::ISceneNode* m_irrSceneNode;
     std::vector<MEdem> m_edems;
     bool m_empty;
     MMaterial* m_material;
 public:
     btRigidBody* getRigid() { return m_rigidBody.get(); }
-    ISceneNode* getNode() { return m_irrSceneNode; }
+    irr::scene::ISceneNode* getNode() { return m_irrSceneNode; }
+    MMaterial* getMaterial() { return m_material; }
     bool isEmpty() { return m_empty; }
 
     ~MObject()
@@ -38,22 +39,30 @@ public:
                 delete m_rigidBody->getCollisionShape();
         }
     }
+
     MObject () : m_empty(true) {}
 
-    MObject (btRigidBody* rb, ISceneNode* sn) :
+    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn) :
         m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
         m_irrSceneNode(sn)
     {
         m_empty = m_rigidBody == nullptr;
     }
 
+    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, MMaterial* mat) :
+        m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
+        m_irrSceneNode(sn),
+        m_material(mat)
+    {
+        m_empty = m_rigidBody == nullptr;
+    }
 
     MObject (MObject&& newObj)
     {
         m_rigidBody = std::move(newObj.m_rigidBody);
         m_edems = std::move(newObj.m_edems);
-        m_irrSceneNode = std::move(newObj.m_irrSceneNode);
-        m_material = &Material::Steel;
+        m_irrSceneNode = newObj.m_irrSceneNode;
+        m_material = newObj.m_material;
     }
 
     MObject (MObject&) = delete;
