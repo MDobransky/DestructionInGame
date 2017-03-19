@@ -52,6 +52,7 @@ private:
     btRigidBody* m_btShip = 0;
     float m_velocity;
     std::unique_ptr<MObjectCreator> m_objectCreator;
+    irr::u32 m_shot_time = 0;
 
     std::unique_ptr<irr::IrrlichtDevice> m_irrDevice;
     std::unique_ptr<MLoader> m_loader;
@@ -59,6 +60,7 @@ private:
     MEventReceiver* m_events;
     btTransform m_terrainTransform;
     btVector3 m_minBound, m_maxBoud;
+    std::vector<std::unique_ptr<btFixedConstraint>> m_constraints;
 
 public:
 

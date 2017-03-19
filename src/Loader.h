@@ -29,7 +29,7 @@ public:
     MLoader(int, int, bool); //width, heigth, fullscreen
 
     //takes the file describing what to load and returns irrlicht device and rigidbody objects
-    std::tuple<std::unique_ptr<irr::IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObject>>> load(std::string);
+    std::tuple<std::unique_ptr<irr::IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr<btFixedConstraint>>> load(std::string);
 
 private:
     const std::string m_media = "media/";
@@ -38,6 +38,7 @@ private:
 
     std::unique_ptr<irr::IrrlichtDevice> m_irrDevice;
     std::vector<std::unique_ptr<gg::MObject>> m_objects;
+    std::vector<std::unique_ptr<btFixedConstraint>> m_constraints;
     std::unique_ptr<MObjectCreator> m_objectCreator;
     int m_width, m_heigth;
     bool m_fullscreen;

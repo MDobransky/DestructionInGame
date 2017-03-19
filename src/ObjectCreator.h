@@ -24,13 +24,12 @@ class MObjectCreator
 
 public:
     MObjectCreator(irr::IrrlichtDevice*);
-    std::vector<MObject*> createDestructibleBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
+    std::tuple<std::vector<MObject*>,std::vector<btFixedConstraint*>> createDestructibleBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
     MObject* createMeshRigidBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
     MObject* createConvexRigidBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
     MObject* createSolidGround(btRigidBody*); //size
     static btBvhTriangleMeshShape* convertMesh(irr::scene::IMeshSceneNode*);
     static btConvexHullShape* convertMeshToHull(irr::scene::IMeshSceneNode *);
-    std::vector<std::unique_ptr<MObject>> decompose(MObject*);
 private:
     class tetrahedron
     {

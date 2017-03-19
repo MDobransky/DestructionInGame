@@ -14,7 +14,7 @@ gg::MLoader::MLoader(int w, int h , bool full) : m_width(w), m_heigth(h), m_full
 
 }
 
-std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObject>>> gg::MLoader::load(std::string level)
+std::tuple<std::unique_ptr<irr::IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr<btFixedConstraint>>> gg::MLoader::load(std::string level)
 {
     //initialize needed variables
     m_irrDevice.reset(createDevice(video::EDT_OPENGL, dimension2d<u32>(m_width,m_heigth), 32, m_fullscreen, false, false, 0)); //setEventReceiver(e) in game.cpp
@@ -50,12 +50,21 @@ std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObj
     {
         if(current_line != "")
         {
-            std::vector<MObject*> objs = m_objectCreator->createDestructibleBody(split(std::stringstream(current_line)));
+            std::vector<MObject*> objs;
+            std::vector<btFixedConstraint*> constraints;
+            std::tie(objs,constraints) = m_objectCreator->createDestructibleBody(split(std::stringstream(current_line)));
             for(auto&& obj : objs)
             {
                 if(obj)
                 {
                     m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+                }
+            }
+            for(auto&& cons : constraints)
+            {
+                if(cons)
+                {
+                    m_constraints.push_back(std::unique_ptr<btFixedConstraint>(cons));
                 }
             }
         }
@@ -65,7 +74,7 @@ std::tuple<std::unique_ptr<IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObj
         m_objects.push_back(std::unique_ptr<gg::MObject>(m_objectCreator->createSolidGround(m_objects[0]->getRigid())));
 
     fin.close();
-    return std::move(std::make_tuple(std::move(m_irrDevice), std::move(m_objects)));
+    return std::move(std::make_tuple(std::move(m_irrDevice), std::move(m_objects), std::move(m_constraints)));
 }
 
 bool gg::MLoader::loadSkybox(std::vector<std::string>&& files)

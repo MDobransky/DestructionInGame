@@ -9,8 +9,8 @@ int main(int argc, char** argv)
     {
             debug = std::string(argv[i]) == "-d";
     }
-        gg::MGame g;
-        g.Run(debug);
+    gg::MGame g;
+    g.Run(debug);
 
 
 return 0;

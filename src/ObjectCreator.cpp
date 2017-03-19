@@ -18,14 +18,14 @@ gg::MObjectCreator::MObjectCreator(IrrlichtDevice* irr) : m_irrDevice(irr)
 {
 }
 
-std::vector<gg::MObject*> gg::MObjectCreator::createDestructibleBody(std::vector<std::string>&& items, ISceneNode *parent)
+std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObjectCreator::createDestructibleBody(std::vector<std::string>&& items, ISceneNode *parent)
 {
     std::vector<MObject*> objects;
-
+    std::vector<btFixedConstraint*> constraints;
     if(items.size() != 13)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
-        return objects;
+        return std::make_tuple(objects,constraints);
     }
 
     float numbers[10];
@@ -44,7 +44,7 @@ std::vector<gg::MObject*> gg::MObjectCreator::createDestructibleBody(std::vector
     tetgenio in,out;
     in.firstnumber = 0;
     in.load_ply(const_cast<char*>(input.c_str()));
-    char* opt = const_cast<char*>(std::string("pnCq1./4").c_str());
+    char* opt = const_cast<char*>(std::string("pnC").c_str());
     tetrahedralize(opt, &in, &out);
 
 //make tetrahedron structures
@@ -97,11 +97,11 @@ std::vector<gg::MObject*> gg::MObjectCreator::createDestructibleBody(std::vector
         }
         buf->recalculateBoundingBox();
 
-        m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,vector3df(3,3,3));
+        m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
         IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
 
         Node->setMaterialType(EMT_SOLID);
-        Node->setMaterialFlag(EMF_LIGHTING, 1);
+        Node->setMaterialFlag(EMF_LIGHTING, 0);
         Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
     //generate bullet body
@@ -116,7 +116,6 @@ std::vector<gg::MObject*> gg::MObjectCreator::createDestructibleBody(std::vector
         Shape->setMargin( 0.05f );
 
         // Add mass
-        Mass = 5;
         btVector3 localInertia;
         Shape->calculateLocalInertia(Mass, localInertia);
 
@@ -131,31 +130,36 @@ std::vector<gg::MObject*> gg::MObjectCreator::createDestructibleBody(std::vector
         objects.push_back(obj);
     }
 
-//create constraints -- not here, in game::startscene
-/*
+//create constraints
+
     for(int a = 0; a < shards.size(); a++)
     {
         for(int j = 0; j < 4; j++)
         {
-            int b = shards[i].neighbours[j];
+            int b = shards[a].neighbours[j];
             if(b != -1)
             {
-                btRigidBody bodyA = objects[a]->getRigid();
-                btRigidBody bodyB = objects[b]->getRigid();
+                btRigidBody* bodyA = objects[a]->getRigid();
+                btRigidBody* bodyB = objects[b]->getRigid();
                 btTransform tr;
                 tr.setIdentity();
-                btVector3 contactPosWorld = manifold->getContactPoint(minIndex).m_positionWorldOnA;
-                tr.setOrigin(contactPosWorld);
-                trA = bodyA->getWorldTransform().inverse()*tr;
-                btFixedConstraint* fixed = new btFixedConstraint(*body0,*body1,tr,tr);
-                fixed->setBreakingImpulseThreshold(10);
-                fixed ->setOverrideNumSolverIterations(30);
+                //btVector3 contactPosWorld = manifold->getContactPoint(minIndex).m_positionWorldOnA;
+                //tr.setOrigin(contactPosWorld);
+                //tr = bodyA->getWorldTransform().inverse()*tr;
+                btFixedConstraint* fixed = new btFixedConstraint(*bodyA,*bodyB,tr,tr);
+                fixed->setBreakingImpulseThreshold(5000);
+                for(int i = 0; i < 4; i++)
+                {
+                    if(shards[b].neighbours[i] == a) {
+                        shards[b].neighbours[i] = -1;
+                    }
+                }
+                constraints.push_back(fixed);
             }
-
         }
     }
-*/
-    return std::move(objects);
+
+    return std::move(std::make_tuple(std::move(objects),constraints));
 }
 gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
 {
@@ -375,63 +379,6 @@ btConvexHullShape* gg::MObjectCreator::convertMeshToHull(IMeshSceneNode * node)
         }
     }
     return hull;
-}
-
-std::vector<std::unique_ptr<gg::MObject>> gg::MObjectCreator::decompose(gg::MObject * object)
-{
-    //generate points inside body
-   // size_t parts = 100;
-    //btRigidBody* source = object->getRigid();
-    //std::vector<btVector3> points;
-    //std::vector<btVector3> vertices(getVertices((btConvexHullShape*)source->getCollisionShape()));
-    //size_t n = vertices.size();
-/*
-    for (size_t i = 0; i < parts; i++)
-    {
-        btVector3 point;
-
-        do
-        {
-        //pick 2 point and random point on line between them
-        size_t v1 = rand() % n;
-        size_t v2 = rand() % n;
-
-        float distance = rand() / (static_cast <float> (RAND_MAX/vertices[v1].distance(vertices[v2])));
-        point = vertices[v2] + btVector3(vertices[v1] - vertices[v2]).normalize() * distance;
-
-        } while(point.getX() != point.getX() && point.getY() != point.getY() && point.getZ() != point.getZ());
-
-        points.push_back(point);
-
-        //scene::IMeshSceneNode *Node3 = m_irrDevice->getSceneManager()->addSphereSceneNode(1.0f);
-        //Node3->setPosition(vector3df(point.getX(),point.getY(),point.getZ()));
-    }
-    */
-/*
-    typedef CGAL::Exact_predicates_exact_constructions_kernel K;
-    typedef CGAL::Delaunay_triangulation_3<K, CGAL::Fast_location> Delaunay;
-    typedef Delaunay::Point Point;
-
-    std::vector<Point> P;
-
-      for (auto&& v : vertices)
-      {
-          P.push_back(Point(v.getX(), v.getY(), v.getX()));
-          //std::cout << v.getX() << " " << v.getY() << " " << v.getX() << "\n";
-      }
-      for (auto&& v : points)
-      {
-          P.push_back(Point(v.getX(), v.getY(), v.getX()));
-          //std::cout << v.getX() << " " << v.getY() << " " << v.getX() << "\n";
-      }
-      Delaunay T(P.begin(), P.end());
-      T.finite_facets_begin();
-*/
-    //make new convex shards
-
-    //glue shards together
-
-    return std::move(std::vector<std::unique_ptr<gg::MObject>>());
 }
 
 std::vector<btVector3> gg::MObjectCreator::getVertices(IMeshSceneNode* Node)
