@@ -44,7 +44,7 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
     tetgenio in,out;
     in.firstnumber = 0;
     in.load_ply(const_cast<char*>(input.c_str()));
-    char* opt = const_cast<char*>(std::string("pnC").c_str());
+    char* opt = const_cast<char*>(std::string("pnCa0.1").c_str());
     tetrahedralize(opt, &in, &out);
 
 //make tetrahedron structures
@@ -103,6 +103,7 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
         Node->setMaterialType(EMT_SOLID);
         Node->setMaterialFlag(EMF_LIGHTING, 0);
         Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+        m_irrDevice->getSceneManager()->getMeshManipulator()->setVertexColors(Node->getMesh(), SColor(0,rand()%256,rand()%256,rand()%256));
 
     //generate bullet body
         // Set the initial position of the object
@@ -117,10 +118,10 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
 
         // Add mass
         btVector3 localInertia;
-        Shape->calculateLocalInertia(Mass, localInertia);
+        Shape->calculateLocalInertia(Mass/shards.size(), localInertia);
 
         // Create the rigid body object
-        btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
+        btRigidBody *rigidBody = new btRigidBody(Mass/shards.size(), motionState, Shape, localInertia);
 
         MMaterial* material = Material::getMaterial(items[2][0]);
 
@@ -147,7 +148,7 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
                 //tr.setOrigin(contactPosWorld);
                 //tr = bodyA->getWorldTransform().inverse()*tr;
                 btFixedConstraint* fixed = new btFixedConstraint(*bodyA,*bodyB,tr,tr);
-                fixed->setBreakingImpulseThreshold(5000);
+                fixed->setBreakingImpulseThreshold(20000);
                 for(int i = 0; i < 4; i++)
                 {
                     if(shards[b].neighbours[i] == a) {
@@ -226,7 +227,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     return obj;
 }
 
-gg::MObject* gg::MObjectCreator::createConvexRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
+gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
 {
     if(items.size() != 13)
     {
@@ -267,17 +268,22 @@ gg::MObject* gg::MObjectCreator::createConvexRigidBody(std::vector<std::string>&
 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
-    btConvexHullShape* hull = new btConvexHullShape();
+    //btConvexHullShape* hull = new btConvexHullShape();
+    aabbox3df box = Node->getTransformedBoundingBox();
+    float width =abs(box.MaxEdge.X-box.MinEdge.X);
+    float height=abs(box.MaxEdge.Y-box.MinEdge.Y);
+    float length=abs(box.MaxEdge.Z-box.MinEdge.Z);
+    btBoxShape*hull = new btBoxShape(btVector3(0.1f, 0.1f, 0.1f));
 
-    std::vector<btVector3> vertices(getVertices(Node));
+    /*std::vector<btVector3> vertices(getVertices(Node));
     for (auto&& v : vertices)
     {
         hull->addPoint(v);
     }
-
+*/
     // Create the shape
     btCollisionShape* Shape = hull;
-    Shape->setMargin( 0.05f );
+    //Shape->setMargin( 0.05f );
 
     // Add mass
     btVector3 localInertia;
@@ -312,7 +318,6 @@ gg::MObject* gg::MObjectCreator::createSolidGround(btRigidBody * terrain)
     Node->setScale(size);
     Node->setMaterialFlag(video::EMF_LIGHTING, 1);
     Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
-    Node->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/rust0.jpg"));
 
     // Set the initial position of the object
     btTransform Transform;

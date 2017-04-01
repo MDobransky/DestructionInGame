@@ -33,12 +33,25 @@ std::tuple<std::unique_ptr<irr::IrrlichtDevice>, std::vector<std::unique_ptr<gg:
 
     int i = 0;
     //read otherlines --terrain and models
-    while(i < 2 && std::getline(fin, current_line))
+    while(i < 1 && std::getline(fin, current_line))
     {
         if(current_line != "")
         {
             i++;
             MObject* obj = m_objectCreator->createMeshRigidBody(split(std::stringstream(current_line)));
+            if(obj)
+            {
+                m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+            }
+        }
+    }
+
+    while(i < 2 && std::getline(fin, current_line))
+    {
+        if(current_line != "")
+        {
+            i++;
+            MObject* obj = m_objectCreator->createBoxedRigidBody(split(std::stringstream(current_line)));
             if(obj)
             {
                 m_objects.push_back(std::unique_ptr<gg::MObject>(obj));

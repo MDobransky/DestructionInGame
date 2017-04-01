@@ -4,13 +4,14 @@
 
 int main(int argc, char** argv)
 {
-    bool debug;
+    bool debug,gravity;
     for (int i = 0; i < argc; ++i)
     {
             debug = std::string(argv[i]) == "-d";
+            gravity = !(std::string (argv[i]) == "-g");
     }
     gg::MGame g;
-    g.Run(debug);
+    g.Run(debug,gravity);
 
 
 return 0;

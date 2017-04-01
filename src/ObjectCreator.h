@@ -26,7 +26,7 @@ public:
     MObjectCreator(irr::IrrlichtDevice*);
     std::tuple<std::vector<MObject*>,std::vector<btFixedConstraint*>> createDestructibleBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
     MObject* createMeshRigidBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
-    MObject* createConvexRigidBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
+    MObject* createBoxedRigidBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
     MObject* createSolidGround(btRigidBody*); //size
     static btBvhTriangleMeshShape* convertMesh(irr::scene::IMeshSceneNode*);
     static btConvexHullShape* convertMeshToHull(irr::scene::IMeshSceneNode *);

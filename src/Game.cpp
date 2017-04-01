@@ -19,7 +19,7 @@ gg::MGame::~MGame()
 {
 }
 
-void gg::MGame::Run(bool debug)
+void gg::MGame::Run(bool debug, bool gravity)
 {
     m_events = new MEventReceiver();
     m_Done = false;
@@ -59,10 +59,15 @@ void gg::MGame::Run(bool debug)
        );
        m_btWorld->setDebugDrawer(&debugDraw);
 
+
        irr::video::SMaterial debugMat;
        debugMat.Lighting = false;
-       const bool debug_draw_bullet = debug;
-
+//apply parameters
+    const bool debug_draw_bullet = debug;
+    if(!gravity)
+    {
+        m_btWorld->setGravity(btVector3(0,0,0));
+    }
 
     CreateStartScene();
 
@@ -78,7 +83,6 @@ void gg::MGame::Run(bool debug)
         str += fps;
         fpsTextElement->setText(str.c_str());
         m_irrDevice->setWindowCaption(str.c_str());
-
 
         DeltaTime = m_irrTimer->getTime() - TimeStamp;
         TimeStamp = m_irrTimer->getTime();
@@ -134,6 +138,7 @@ void  gg::MGame::CreateStartScene()
         if(i == 1)
         {
             m_btShip = m_objects[i]->getRigid();
+            m_btShip->setActivationState(DISABLE_DEACTIVATION);
             m_IShip = m_objects[i]->getNode();
         }
         m_btWorld->addRigidBody(m_objects[i]->getRigid());
@@ -204,13 +209,13 @@ void  gg::MGame::ApplyEvents()
 
     if(m_events->keyDown('Z'))
     {
-        m_velocity -= 15;
-        if(m_velocity < -200) m_velocity = -200;
+        m_velocity -= 30;
+        if(m_velocity < -400) m_velocity = -400;
     }
 
     if(m_events->keyDown('X'))
     {
-        m_velocity += 15;
+        m_velocity += 30;
         if(m_velocity >= 0) m_velocity = -1;
     }
 

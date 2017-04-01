@@ -64,7 +64,7 @@ private:
 
 public:
 
-    void Run(bool debug);
+    void Run(bool debug, bool gravity);
     ~MGame();
     MGame();
     MGame(const MGame&) = delete;

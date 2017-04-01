@@ -1,5 +1,4 @@
-skybox/nevada_up.tga;skybox/nevada_dn.tga;skybox/nevada_rt.tga;skybox/nevada_lf.tga;skybox/nevada_ft.tga;skybox/nevada_bk.tga
-untitled.obj;mountains.jpg;D;0;-1000.0;0;0;0;0;3;3;3;0
-xwing.3ds;;S;0;0;600;0;0;0;0.1;0.1;0.1;5.5
-cube.ply;;C;0;-200;300;0;0;0;30;30;30;5
-
+skybox/top.jpg;skybox/bottom.jpg;skybox/front.jpg;skybox/back.jpg;skybox/right.jpg;skybox/left.jpg
+terrain.obj;rock_texture.jpg;D;0;-1000.0;0;0;0;0;5;5;5;0
+fighter.3ds;;S;3000;-300;300;0;0;0;0.4;0.4;0.4;5.5
+cube.ply;;C;3000;-100;-700;0;0;0;30;30;30;100
