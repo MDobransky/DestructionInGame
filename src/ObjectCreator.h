@@ -4,7 +4,6 @@
 #ifndef OBJECTCREATOR_H
 #define OBJECTCREATOR_H
 
-#include "Edem.h"
 #include "Object.h"
 
 #include <irrlicht.h>
@@ -35,7 +34,7 @@ private:
     {
     public:
         btVector3 points[4];
-        int neighbours[4];
+        uint neighbours[4];
         btVector3 center;
     };
 

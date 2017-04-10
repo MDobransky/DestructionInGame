@@ -4,8 +4,6 @@
 #include "Object.h"
 #include "EventReceiver.h"
 #include "Loader.h"
-#include "CollisionResolver.h"
-
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>

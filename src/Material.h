@@ -8,45 +8,43 @@ namespace gg {
 class MMaterial
 {
 private:
-    double strength; //ultimate tensile strength in MPa
+    double strength;
     uint_fast32_t density; //kg/m^3
+    float fragment_size;
+
 public:
-    double getStrength() { return strength; }
-    int getDensity() { return density; }
-    MMaterial(double s,int d) : strength(s), density(d) {}
+    double getStrength() const { return strength; }
+    int getDensity() const { return density; }
+    float getFragmentation() const { return fragment_size; }
+    MMaterial(double s,int d, float f) : strength(s), density(d), fragment_size(f) {}
+    MMaterial() : strength(0), density(0), fragment_size(0) {}
     ~MMaterial() {}
-};
-
-namespace Material
-{
-    static MMaterial Shot = MMaterial(0,-1);
-    static MMaterial Concrete = MMaterial(3.5,2700);
-    static MMaterial Steel = MMaterial(450,8050);
-    static MMaterial Wood = MMaterial(40,750);
-    static MMaterial Dirt = MMaterial(0.1,1500);
-    static MMaterial Rock = MMaterial(100,2600);
-    static MMaterial Magic = MMaterial(0,0); //indestructible
-
-    static MMaterial* getMaterial(char m)
+    static const MMaterial Shot;
+    static const MMaterial Concrete;
+    static const MMaterial Steel;
+    static const MMaterial Wood;
+    static const MMaterial Dirt;
+    static const MMaterial Rock;
+    static const MMaterial Magic;
+    static const MMaterial* getMaterial(char m)
     {
         switch (m) {
         case 'C':
-            return &Material::Concrete;
+            return &Concrete;
         case 'S':
-            return &Material::Steel;
+            return &Steel;
         case 'W':
-            return &Material::Wood;
+            return &Wood;
         case 'D':
-            return &Material::Dirt;
+            return &Dirt;
         case 'R':
-            return& Material::Rock;
+            return &Rock;
         case 'H':
-            return &Material::Shot;
-        default : return &Material::Magic;
+            return &Shot;
+        default : return &Magic;
         }
     }
-}
 
-
+};
 }
 #endif

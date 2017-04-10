@@ -39,12 +39,13 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
     btVector3 position(numbers[0],numbers[1],numbers[2]);
     core::vector3df rotation(numbers[3],numbers[4],numbers[5]);
     core::vector3df scale(numbers[6],numbers[7],numbers[8]);
-    btScalar Mass = numbers[9];
+    const MMaterial* material = MMaterial::getMaterial(items[2][0]);
 //GENERATE TETRAHEDRONS
+    std::string parameters = "pnCa"+std::to_string(material->getFragmentation());
     tetgenio in,out;
     in.firstnumber = 0;
     in.load_ply(const_cast<char*>(input.c_str()));
-    char* opt = const_cast<char*>(std::string("pnCa0.1").c_str());
+    char* opt = const_cast<char*>(parameters.c_str());
     tetrahedralize(opt, &in, &out);
 
 //make tetrahedron structures
@@ -68,6 +69,7 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
 //make objects
     for(int i = 0; i < out.numberoftetrahedra; i++)
     {
+        tetrahedron* shard = &shards[i];
     //generate irrlicht mesh
         SMesh* mesh = new SMesh();
         SMeshBuffer *buf = 0;
@@ -82,12 +84,12 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
 
         for(int j = 0; j < 4; j++)
         {
-            buf->Vertices[j] = S3DVertex(float(shards[i].points[j].getX()),
-                                         float(shards[i].points[j].getY()),
-                                         float(shards[i].points[j].getZ()),
-                                         shards[i].center.getX(),
-                                         shards[i].center.getY(),
-                                         shards[i].center.getZ(),
+            buf->Vertices[j] = S3DVertex(float(shard->points[j].getX()),
+                                         float(shard->points[j].getY()),
+                                         float(shard->points[j].getZ()),
+                                         shard->center.getX(),
+                                         shard->center.getY(),
+                                         shard->center.getZ(),
                                          video::SColor(100,100,100,100), 0, 1);
         }
         int indices[] = {1,0,2,1,3,0,1,2,3,0,3,2};
@@ -118,12 +120,17 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
 
         // Add mass
         btVector3 localInertia;
-        Shape->calculateLocalInertia(Mass/shards.size(), localInertia);
+        float volume = ((shard->points[3].x() - shard->points[0].x()) * ((shard->points[1].y() - shard->points[0].y()) * (shard->points[2].z() - shard->points[0].z()) - (shard->points[1].z() - shard->points[0].z()) * (shard->points[2].y() - shard->points[0].y())) +
+                (shard->points[3].y() - shard->points[0].y()) * ((shard->points[1].z() - shard->points[0].z()) * (shard->points[2].x() - shard->points[0].x()) - (shard->points[1].x() - shard->points[0].x()) * (shard->points[2].z() - shard->points[0].z())) +
+                (shard->points[3].z() - shard->points[0].z()) * ((shard->points[1].x() - shard->points[0].x()) * (shard->points[2].y() - shard->points[0].y()) - (shard->points[1].y() - shard->points[0].y()) * (shard->points[2].x() - shard->points[0].x())))/6.0f;
+
+        btScalar Mass = volume * material->getDensity();
+        Shape->calculateLocalInertia(Mass, localInertia);
 
         // Create the rigid body object
-        btRigidBody *rigidBody = new btRigidBody(Mass/shards.size(), motionState, Shape, localInertia);
+        btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
-        MMaterial* material = Material::getMaterial(items[2][0]);
+
 
         MObject* obj = new MObject(rigidBody, Node, material);
 
@@ -133,7 +140,7 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
 
 //create constraints
 
-    for(int a = 0; a < shards.size(); a++)
+    for(size_t a = 0; a < shards.size(); a++)
     {
         for(int j = 0; j < 4; j++)
         {
@@ -144,11 +151,8 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
                 btRigidBody* bodyB = objects[b]->getRigid();
                 btTransform tr;
                 tr.setIdentity();
-                //btVector3 contactPosWorld = manifold->getContactPoint(minIndex).m_positionWorldOnA;
-                //tr.setOrigin(contactPosWorld);
-                //tr = bodyA->getWorldTransform().inverse()*tr;
                 btFixedConstraint* fixed = new btFixedConstraint(*bodyA,*bodyB,tr,tr);
-                fixed->setBreakingImpulseThreshold(20000);
+                fixed->setBreakingImpulseThreshold(material->getStrength());
                 for(int i = 0; i < 4; i++)
                 {
                     if(shards[b].neighbours[i] == a) {
@@ -218,7 +222,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     // Create the rigid body object
     btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
-    MMaterial* material = Material::getMaterial(items[2][0]);
+    const MMaterial* material = MMaterial::getMaterial(items[2][0]);
 
     MObject* obj = new MObject(rigidBody, Node, material);
     // Store a pointer to the irrlicht node so we can update it later
@@ -269,10 +273,10 @@ gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&&
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
     //btConvexHullShape* hull = new btConvexHullShape();
-    aabbox3df box = Node->getTransformedBoundingBox();
+    /*aabbox3df box = Node->getTransformedBoundingBox();
     float width =abs(box.MaxEdge.X-box.MinEdge.X);
     float height=abs(box.MaxEdge.Y-box.MinEdge.Y);
-    float length=abs(box.MaxEdge.Z-box.MinEdge.Z);
+    float length=abs(box.MaxEdge.Z-box.MinEdge.Z);*/
     btBoxShape*hull = new btBoxShape(btVector3(0.1f, 0.1f, 0.1f));
 
     /*std::vector<btVector3> vertices(getVertices(Node));
@@ -292,7 +296,7 @@ gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&&
     // Create the rigid body object
     btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
-    MMaterial* material = Material::getMaterial(items[2][0]);
+   const MMaterial* material = MMaterial::getMaterial(items[2][0]);
 
     MObject* obj = new MObject(rigidBody, Node, material);
     // Store a pointer to the irrlicht node so we can update it later
@@ -339,7 +343,7 @@ gg::MObject* gg::MObjectCreator::createSolidGround(btRigidBody * terrain)
     btRigidBody *RigidBody = new btRigidBody(0, MotionState, Shape, LocalInertia);
     //RigidBody->setGravity(btVector3(0,0,0));
 
-    MObject * obj = new MObject(RigidBody, Node, &Material::Magic);
+    MObject * obj = new MObject(RigidBody, Node, &MMaterial::Magic);
 
     // Store a pointer to the irrlicht node so we can update it later
     RigidBody->setUserPointer((void *)(obj));

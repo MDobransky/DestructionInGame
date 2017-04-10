@@ -3,7 +3,6 @@
 #ifndef LOADER_H
 #define LOADER_H
 
-#include "Edem.h"
 #include "Object.h"
 #include "ObjectCreator.h"
 

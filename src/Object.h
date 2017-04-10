@@ -2,7 +2,6 @@
 
 #ifndef OBJECT_H
 #define OBJECT_H
-#include "Edem.h"
 #include "Material.h"
 
 #include <irrlicht.h>
@@ -20,13 +19,12 @@ class MObject
 private:
     std::unique_ptr<btRigidBody> m_rigidBody;
     irr::scene::ISceneNode* m_irrSceneNode;
-    std::vector<MEdem> m_edems;
     bool m_empty;
-    MMaterial* m_material;
+    const MMaterial* m_material;
 public:
     btRigidBody* getRigid() { return m_rigidBody.get(); }
     irr::scene::ISceneNode* getNode() { return m_irrSceneNode; }
-    MMaterial* getMaterial() { return m_material; }
+    const MMaterial* getMaterial() { return m_material; }
     bool isEmpty() { return m_empty; }
 
     ~MObject()
@@ -49,7 +47,7 @@ public:
         m_empty = m_rigidBody == nullptr;
     }
 
-    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, MMaterial* mat) :
+    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, const MMaterial* mat) :
         m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
         m_irrSceneNode(sn),
         m_material(mat)
@@ -60,13 +58,12 @@ public:
     MObject (MObject&& newObj)
     {
         m_rigidBody = std::move(newObj.m_rigidBody);
-        m_edems = std::move(newObj.m_edems);
         m_irrSceneNode = newObj.m_irrSceneNode;
         m_material = newObj.m_material;
     }
 
     MObject (MObject&) = delete;
-    MObject& operator= (MObject&& newObj) = delete;
+    MObject& operator= (MObject&&) = delete;
     MObject&  operator= (const MObject&) = delete;
 };
 
