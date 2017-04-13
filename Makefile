@@ -7,6 +7,7 @@ CFLAGS = -Wall -std=c++14 -pedantic -g
 
 INCLUDES = -I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/LinearMath
 
+DIRS = build build/tetgen
 
 LFLAGS = -L/usr/lib
 
@@ -23,25 +24,29 @@ SRCS = src/main.cpp src/Game.cpp src/EventReceiver.cpp src/CollisionResolver.cpp
 
 all: build/tetgen/tetlib build/game
 
-build/tetgen/tetlib: src/tetgen/tetgen.cxx build/tetgen/predicates.o
+build/tetgen/tetlib: src/tetgen/tetgen.cxx build/tetgen/predicates.o | $(DIRS)
 	g++ -c -o2  src/tetgen/tetgen.cxx -o build/tetgen/tetgen.o
 	ar r build/tetgen/libtet.a build/tetgen/tetgen.o build/tetgen/predicates.o
-build/tetgen/predicates.o: src/tetgen/predicates.cxx
+build/tetgen/predicates.o: src/tetgen/predicates.cxx | $(DIRS)
 	g++ -c -o2 src/tetgen/predicates.cxx -o build/tetgen/predicates.o
-build/game: build/game.o build/main.o build/event.o build/loader.o build/creator.o build/material.o
+build/game: build/game.o build/main.o build/event.o build/loader.o build/creator.o build/material.o | $(DIRS)
 	g++ $(CFLAGS) -o build/game build/*.o $(LFLAGS) $(LIBS) -Lbuild/tetgen -ltet
-build/game.o: src/Game.cpp
+build/game.o: src/Game.cpp | $(DIRS)
 	g++ $(CFLAGS) $(INCLUDES) -c src/Game.cpp -o build/game.o
-build/main.o: src/main.cpp
+build/main.o: src/main.cpp | $(DIRS)
 	g++ $(CFLAGS) $(INCLUDES) -c src/main.cpp -o build/main.o
-build/event.o: src/EventReceiver.cpp
+build/event.o: src/EventReceiver.cpp | $(DIRS)
 	g++ $(CFLAGS) $(INCLUDES) -c src/EventReceiver.cpp -o build/event.o
-build/loader.o: src/Loader.cpp
+build/loader.o: src/Loader.cpp | $(DIRS)
 	g++ $(CFLAGS) $(INCLUDES) -c src/Loader.cpp -o build/loader.o
-build/creator.o: src/ObjectCreator.cpp src/Material.h
+build/creator.o: src/ObjectCreator.cpp src/Material.h | $(DIRS)
 	g++ $(CFLAGS) $(INCLUDES) -c src/ObjectCreator.cpp -o build/creator.o
-build/material.o: src/Material.cpp
+build/material.o: src/Material.cpp | $(DIRS)
 	g++ $(CFLAGS) $(INCLUDES) -c src/Material.cpp -o build/material.o
+$(DIRS):
+	mkdir -p $(DIRS)
+
+  	  
 #build/collisionresolver.o: src/CollisionResolver.cpp
 #	g++ $(CFLAGS) $(INCLUDES) -c src/CollisionResolver.cpp -o build/collisionresolver.o
 
