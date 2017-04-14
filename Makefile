@@ -8,7 +8,7 @@ BUILDDIR=build/
 LFLAGS= -L/usr/lib
 LIBS= -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath
 
-HEADERS= Game.h Loader.h EventReceiver.h Material.h Object.h ObjectCreator.h tetgen/tetgen.h
+HEADERS= $(notdir $(wildcard $(SRCDIR)*.cpp))
 OBJS= $(addprefix $(BUILDDIR), $(subst .cpp,.o,$(notdir $(wildcard $(SRCDIR)*.cpp))) predicates.o tetgen.o)
 PROG= $(BUILDDIR)game
 VPATH=src/
