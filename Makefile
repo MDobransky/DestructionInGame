@@ -17,15 +17,12 @@ all: $(PROG)
 %.o: %.cpp $(SRCDIR)$(HEADERS)
 	$(CXX) $(CXXFLAGS) $(INC) $< -c -o $@
 	
+%.o: tetgen/%.cxx $(SRCDIR)$(HEADERS)
+	$(CXX) $(TETFLAGS) $(INC) $< -c -o $@
+	
 $(PROG):  $(TETGEN) $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $(PROG)	
 
-tetgen.o:	src/tetgen/tetgen.cxx
-	$(CXX) $(TETFLAGS) -c src/tetgen/tetgen.cxx -o tetgen.o
-
-predicates.o: src/tetgen/predicates.cxx
-	$(CXX) $(TETFLAGS) -c src/tetgen/predicates.cxx -o predicates.o
-    
 clean:
 	rm -f $(OBJS) $(PROG)
 
