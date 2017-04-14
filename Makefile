@@ -1,60 +1,31 @@
-# define the C compiler to use
-CC = g++
+CXX= g++ -std=c++14
+LD= g++ -std=c++14
+CXXFLAGS= -Wall -g -O3 -pedantic
+TETFLAGS= -O3 -Wno-unused-result -Wno-unused-but-set-variable 
+INC=-I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/LinearMath
+SRCDIR=src/
+LFLAGS= -L/usr/lib
+LIBS= -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath
 
-# define any compile-time flags
-CFLAGS = -Wall -std=c++14 -pedantic -g
+HEADERS= Game.h Loader.h EventReceiver.h Material.h Object.h ObjectCreator.h tetgen/tetgen.h
+OBJS= main.o Game.o Loader.o EventReceiver.o Material.o ObjectCreator.o predicates.o tetgen.o
+PROG= game
+VPATH=src/
 
+all: $(PROG)
 
-INCLUDES = -I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/LinearMath
+%.o: %.cpp $(SRCDIR)$(HEADERS)
+	$(CXX) $(CXXFLAGS) $(INC) $< -c -o $@
+	
+$(PROG):  $(TETGEN) $(OBJS)
+	$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $(PROG)	
 
-DIRS = build build/tetgen
+tetgen.o:	src/tetgen/tetgen.cxx
+	$(CXX) $(TETFLAGS) -c src/tetgen/tetgen.cxx -o tetgen.o
 
-LFLAGS = -L/usr/lib
-
-
-LIBS = -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath
-
-# define the C++ source files
-SRCS = src/main.cpp src/Game.cpp src/EventReceiver.cpp src/CollisionResolver.cpp src/ObjectCreator.cpp
-
-# define the C++ object files 
-#
-
-.PHONY: depend clean
-
-all: build/tetgen/tetlib build/game
-
-build/tetgen/tetlib: src/tetgen/tetgen.cxx build/tetgen/predicates.o | $(DIRS)
-	g++ -c -o2  src/tetgen/tetgen.cxx -o build/tetgen/tetgen.o
-	ar r build/tetgen/libtet.a build/tetgen/tetgen.o build/tetgen/predicates.o
-build/tetgen/predicates.o: src/tetgen/predicates.cxx | $(DIRS)
-	g++ -c -o2 src/tetgen/predicates.cxx -o build/tetgen/predicates.o
-build/game: build/game.o build/main.o build/event.o build/loader.o build/creator.o build/material.o | $(DIRS)
-	g++ $(CFLAGS) -o build/game build/*.o $(LFLAGS) $(LIBS) -Lbuild/tetgen -ltet
-build/game.o: src/Game.cpp | $(DIRS)
-	g++ $(CFLAGS) $(INCLUDES) -c src/Game.cpp -o build/game.o
-build/main.o: src/main.cpp | $(DIRS)
-	g++ $(CFLAGS) $(INCLUDES) -c src/main.cpp -o build/main.o
-build/event.o: src/EventReceiver.cpp | $(DIRS)
-	g++ $(CFLAGS) $(INCLUDES) -c src/EventReceiver.cpp -o build/event.o
-build/loader.o: src/Loader.cpp | $(DIRS)
-	g++ $(CFLAGS) $(INCLUDES) -c src/Loader.cpp -o build/loader.o
-build/creator.o: src/ObjectCreator.cpp src/Material.h | $(DIRS)
-	g++ $(CFLAGS) $(INCLUDES) -c src/ObjectCreator.cpp -o build/creator.o
-build/material.o: src/Material.cpp | $(DIRS)
-	g++ $(CFLAGS) $(INCLUDES) -c src/Material.cpp -o build/material.o
-$(DIRS):
-	mkdir -p $(DIRS)
-
-  	  
-#build/collisionresolver.o: src/CollisionResolver.cpp
-#	g++ $(CFLAGS) $(INCLUDES) -c src/CollisionResolver.cpp -o build/collisionresolver.o
-
-
+predicates.o: src/tetgen/predicates.cxx
+	$(CXX) $(TETFLAGS) -c src/tetgen/predicates.cxx -o predicates.o
+    
 clean:
-	$(RM) build/*.o build/game build/tetgen/*
+	rm -f $(OBJS) $(PROG)
 
-depend: $(SRCS)
-	makedepend $(INCLUDES) $^
-
-# DO NOT DELETE THIS LINE -- make depend needs it

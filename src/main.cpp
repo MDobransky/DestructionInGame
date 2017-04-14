@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv)
 {
-    bool debug,gravity;
+    bool debug = 0,gravity = 1;
     for (int i = 0; i < argc; ++i)
     {
             debug = std::string(argv[i]) == "-d";
