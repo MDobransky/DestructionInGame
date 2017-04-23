@@ -8,21 +8,21 @@ BUILDDIR=build/
 LFLAGS= -L/usr/lib
 LIBS= -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath
 
-HEADERS= $(notdir $(wildcard $(SRCDIR)*.cpp))
-OBJS= $(addprefix $(BUILDDIR), $(subst .cpp,.o,$(notdir $(wildcard $(SRCDIR)*.cpp))) predicates.o tetgen.o)
+HEADERS= $(notdir $(wildcard $(SRCDIR)*.h))
+OBJS= $(addprefix $(BUILDDIR), $(subst .cpp,.o,$(notdir $(wildcard $(SRCDIR)*.cpp))))
 PROG= $(BUILDDIR)game
 VPATH=src/
 
 all: $(PROG)
 
-$(BUILDDIR)%.o: %.cpp $(SRCDIR)$(HEADERS)
+$(BUILDDIR)%.o: %.cpp $(SRCDIR)$(HEADERS) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) $(INC) $< -c -o $@
 	
-$(BUILDDIR)%.o: tetgen/%.cxx $(SRCDIR)$(HEADERS)
-	$(CXX) $(TETFLAGS) $(INC) $< -c -o $@
-	
-$(PROG): $(OBJS)
-	$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $(PROG)
+$(PROG): $(OBJS) | $(BUILDDIR)
+	$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $(PROG) 
+
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
 
 clean:
 	rm -f $(OBJS) $(PROG)

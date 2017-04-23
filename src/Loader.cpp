@@ -9,35 +9,50 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
-gg::MLoader::MLoader(int w, int h , bool full) : m_width(w), m_heigth(h), m_fullscreen(full)
+gg::MLoader::MLoader(irr::IrrlichtDevice* device) : m_irrDevice(device)
 {
 
 }
 
-std::tuple<std::unique_ptr<irr::IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr<btFixedConstraint>>> gg::MLoader::load(std::string level)
+std::tuple<std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr<btFixedConstraint>>> gg::MLoader::load(std::string level)
 {
-    //initialize needed variables
-    m_irrDevice.reset(createDevice(video::EDT_OPENGL, dimension2d<u32>(m_width,m_heigth), 32, m_fullscreen, false, false, 0)); //setEventReceiver(e) in game.cpp
     m_objects = std::vector<std::unique_ptr<gg::MObject>>();
-    m_objectCreator.reset(new MObjectCreator(m_irrDevice.get()));
+    m_objectCreator.reset(new MObjectCreator(m_irrDevice));
 
     std::string current_line;
     //open level file
     std::fstream fin;
     fin.open (level, std::fstream::in);
+    MObject* obj;
 
-    //read first line and setup skybox
+    //skybox
     std::getline(fin, current_line);
     if(!loadSkybox(split(std::stringstream(current_line))))
         std::cerr << "Loading skybox failed!\n";
 
-    int i = 0;
-    //read otherlines --terrain and models
-    while(i < 1 && std::getline(fin, current_line))
+    //ground
+    std::getline(fin, current_line);
+    obj = m_objectCreator->createSolidGround(split(std::stringstream(current_line)));
+    if(obj)
+    {
+        m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+    }
+
+    //ship
+    std::getline(fin, current_line);
+    obj = m_objectCreator->createBoxedRigidBody(split(std::stringstream(current_line)));
+    if(obj)
+    {
+        m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+    }
+
+    //buildings
+    while(std::getline(fin, current_line))
     {
         if(current_line != "")
         {
-            i++;
+            std::vector<MObject*> objs;
+            std::vector<btFixedConstraint*> constraints;
             MObject* obj = m_objectCreator->createMeshRigidBody(split(std::stringstream(current_line)));
             if(obj)
             {
@@ -45,49 +60,8 @@ std::tuple<std::unique_ptr<irr::IrrlichtDevice>, std::vector<std::unique_ptr<gg:
             }
         }
     }
-
-    while(i < 2 && std::getline(fin, current_line))
-    {
-        if(current_line != "")
-        {
-            i++;
-            MObject* obj = m_objectCreator->createBoxedRigidBody(split(std::stringstream(current_line)));
-            if(obj)
-            {
-                m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
-            }
-        }
-    }
-
-    while(std::getline(fin, current_line))
-    {
-        if(current_line != "")
-        {
-            std::vector<MObject*> objs;
-            std::vector<btFixedConstraint*> constraints;
-            std::tie(objs,constraints) = m_objectCreator->createDestructibleBody(split(std::stringstream(current_line)));
-            for(auto&& obj : objs)
-            {
-                if(obj)
-                {
-                    m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
-                }
-            }
-            for(auto&& cons : constraints)
-            {
-                if(cons)
-                {
-                    m_constraints.push_back(std::unique_ptr<btFixedConstraint>(cons));
-                }
-            }
-        }
-    }
-
-    if(!m_objects.empty())
-        m_objects.push_back(std::unique_ptr<gg::MObject>(m_objectCreator->createSolidGround(m_objects[0]->getRigid())));
-
     fin.close();
-    return std::move(std::make_tuple(std::move(m_irrDevice), std::move(m_objects), std::move(m_constraints)));
+    return std::move(std::make_tuple(std::move(m_objects), std::move(m_constraints)));
 }
 
 bool gg::MLoader::loadSkybox(std::vector<std::string>&& files)
@@ -111,9 +85,9 @@ bool gg::MLoader::loadSkybox(std::vector<std::string>&& files)
     return true;
 }
 
-std::vector<std::string> gg::MLoader::split(std::stringstream&& split)
+std::vector<std::string> gg::MLoader::split(std::stringstream&& input)
 {
     std::vector<std::string> parts;
-    for(std::string item; std::getline(split, item, ';');parts.push_back(item));
+    for(std::string item; std::getline(input, item, ';'); parts.push_back(item));
     return std::move(parts);
 }

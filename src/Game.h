@@ -30,21 +30,19 @@ private:
     void CreateBox(const btVector3 &TPosition, const irr::core::vector3df &TScale, btScalar TMass);
     void UpdatePhysics(irr::u32 TDeltaTime);
     void UpdateRender(btRigidBody *TObject);
-    void ClearAllObjects();
-    void ClearObject(btRigidBody*);
-    void Shoot(bool);
+    void Shoot();
     void ApplyEvents();
+    void ApplySettings();
 
     //IrrlichtDevice *irrDevice;
     btDiscreteDynamicsWorld *m_btWorld;
 
-    bool m_Done;
+    bool m_done, m_paused = true;
     bool m_left = false;
     irr::video::IVideoDriver *m_irrDriver;
     irr::scene::ISceneManager *m_irrScene;
     irr::gui::IGUIEnvironment *m_irrGUI;
     irr::ITimer *m_irrTimer;
-    irr::core::list<btRigidBody *> m_Objects;
     irr::scene::ISceneNode* m_IShip;
     irr::scene::ICameraSceneNode* m_Camera;
     btRigidBody* m_btShip = 0;

@@ -5,8 +5,6 @@
 #include <cmath>
 #include <map>
 
-#include "tetgen/tetgen.h"
-
 using namespace irr;
 using namespace core;
 using namespace scene;
@@ -17,7 +15,7 @@ using namespace gui;
 gg::MObjectCreator::MObjectCreator(IrrlichtDevice* irr) : m_irrDevice(irr)
 {
 }
-
+/*
 std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObjectCreator::createDestructibleBody(std::vector<std::string>&& items, ISceneNode *parent)
 {
     std::vector<MObject*> objects;
@@ -166,7 +164,8 @@ std::tuple<std::vector<gg::MObject*>,std::vector<btFixedConstraint*>>  gg::MObje
 
     return std::move(std::make_tuple(std::move(objects),constraints));
 }
-gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
+*/
+gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& items)
 {
     if(items.size() != 13)
     {
@@ -192,12 +191,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     IMesh* mesh = m_irrDevice->getSceneManager()->getMesh((m_media + items[0]).c_str());
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
     IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode( mesh );
-
-    if(parent != NULL)
-    {
-        Node->setParent(parent);
-        Node->setRotation(rotation);
-    }
+    Node->setRotation(rotation);
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_LIGHTING, 1);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
@@ -231,7 +225,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     return obj;
 }
 
-gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&& items, ISceneNode *parent)
+gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&& items)
 {
     if(items.size() != 13)
     {
@@ -254,11 +248,8 @@ gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&&
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
     IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode( mesh );
 
-    if(parent != NULL)
-    {
-        Node->setParent(parent);
-        Node->setRotation(rotation);
-    }
+
+    Node->setRotation(rotation);
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_LIGHTING, 1);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
@@ -305,47 +296,60 @@ gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&&
     return obj;
 }
 
-gg::MObject* gg::MObjectCreator::createSolidGround(btRigidBody * terrain)
+gg::MObject* gg::MObjectCreator::createSolidGround(std::vector<std::string>&& items)
 {
-    //Get position and size from terrain
-    btTransform t;
-    t.setIdentity();
-    btVector3 min,max,pos;
-    vector3df size;
-    terrain->getCollisionShape()->getAabb(t,max,min);
+    if(items.size() != 13)
+    {
+        std::cerr << "Object failed to load: wrong number of parameters\n";
+        return new MObject();
+    }
 
-    size = vector3df(abs(min.getX())+abs(max.getX()), 50, abs(min.getZ())+abs(max.getZ()));
-    pos = btVector3(0,-1026+max.getY(),0);
+    float numbers[10];
+    for(int i = 0; i < 10; i++)
+    {
+        numbers[i] = std::stof(items[i+3]);
+    }
+
+    //std::string input(items[0]);
+    std::string texture(items[1]);
+    //char material(items[2][0]);
+    btVector3 position(numbers[0],numbers[1],numbers[2]);
+    core::vector3df rotation(numbers[3],numbers[4],numbers[5]);
+    core::vector3df scale(numbers[6],numbers[7],numbers[8]);
+    const btScalar Mass = numbers[9];
 
     // Create an Irrlicht cube
     scene::ISceneNode *Node = m_irrDevice->getSceneManager()->addCubeSceneNode(1.0f);
-    Node->setScale(size);
+    Node->setScale(scale);
+    Node->setRotation(rotation);
     Node->setMaterialFlag(video::EMF_LIGHTING, 1);
     Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
+    if(items[1] != "")
+        Node->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture((m_media + texture).c_str()));
+
 
     // Set the initial position of the object
     btTransform Transform;
     Transform.setIdentity();
-    Transform.setOrigin(pos);
+    Transform.setOrigin(position);
 
     // Give it a default MotionState
     btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
 
     // Create the shape
-    btVector3 HalfExtents(size.X*0.5, size.Y*0.5 , size.Z*0.5);
+    btVector3 HalfExtents(scale.X*0.5, scale.Y*0.5 , scale.Z*0.5);
     btCollisionShape *Shape = new btBoxShape(HalfExtents);
 
     // Add mass
     btVector3 LocalInertia;
-    Shape->calculateLocalInertia(0, LocalInertia);
+    Shape->calculateLocalInertia(Mass, LocalInertia);
 
     // Create the rigid body object
-    btRigidBody *RigidBody = new btRigidBody(0, MotionState, Shape, LocalInertia);
-    //RigidBody->setGravity(btVector3(0,0,0));
+    btRigidBody *RigidBody = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
+    RigidBody->setGravity(btVector3(0,0,0));
 
     MObject * obj = new MObject(RigidBody, Node, &MMaterial::Magic);
 
-    // Store a pointer to the irrlicht node so we can update it later
     RigidBody->setUserPointer((void *)(obj));
 
     return obj;

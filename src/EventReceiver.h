@@ -16,8 +16,10 @@ public:
 
     virtual bool OnEvent(const irr::SEvent &TEvent);
     bool keyDown(char keycode);
+    bool keyPressed(char keycode);
 private:
     bool keyState[irr::KEY_KEY_CODES_COUNT] = {0,irr::KEY_KEY_CODES_COUNT};
+    bool oldState[irr::KEY_KEY_CODES_COUNT] = {0,irr::KEY_KEY_CODES_COUNT};
 };
 
 }

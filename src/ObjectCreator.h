@@ -23,24 +23,14 @@ class MObjectCreator
 
 public:
     MObjectCreator(irr::IrrlichtDevice*);
-    std::tuple<std::vector<MObject*>,std::vector<btFixedConstraint*>> createDestructibleBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
-    MObject* createMeshRigidBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
-    MObject* createBoxedRigidBody(std::vector<std::string>&&, irr::scene::ISceneNode* parrent = NULL);
-    MObject* createSolidGround(btRigidBody*); //size
+    MObject* createMeshRigidBody(std::vector<std::string>&&);
+    MObject* createBoxedRigidBody(std::vector<std::string>&&);
+    MObject* createSolidGround(std::vector<std::string>&&);
     static btBvhTriangleMeshShape* convertMesh(irr::scene::IMeshSceneNode*);
     static btConvexHullShape* convertMeshToHull(irr::scene::IMeshSceneNode *);
 private:
-    class tetrahedron
-    {
-    public:
-        btVector3 points[4];
-        uint neighbours[4];
-        btVector3 center;
-    };
-
     irr::IrrlichtDevice* m_irrDevice;
     const std::string m_media = "media/";
-    std::vector<std::unique_ptr<MObject>> voronoiBBShatter(const btAlignedObjectArray<btVector3>&, const btVector3&, const btVector3&, const btQuaternion&, btScalar);
     std::vector<btVector3> getVertices(irr::scene::IMeshSceneNode*);
     std::vector<btVector3> getVertices(btConvexHullShape*);
 };

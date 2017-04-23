@@ -16,8 +16,6 @@
 #include <tuple>
 #include <memory>
 
-
-
 namespace gg {
 
 class MLoader
@@ -25,17 +23,17 @@ class MLoader
 
 
 public:
-    MLoader(int, int, bool); //width, heigth, fullscreen
+    MLoader(irr::IrrlichtDevice*);
 
     //takes the file describing what to load and returns irrlicht device and rigidbody objects
-    std::tuple<std::unique_ptr<irr::IrrlichtDevice>, std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr<btFixedConstraint>>> load(std::string);
+    std::tuple<std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr<btFixedConstraint>>> load(std::string);
 
 private:
     const std::string m_media = "media/";
     bool loadSkybox(std::vector<std::string>&&);
     std::vector<std::string> split(std::stringstream&&);
 
-    std::unique_ptr<irr::IrrlichtDevice> m_irrDevice;
+    irr::IrrlichtDevice* m_irrDevice;
     std::vector<std::unique_ptr<gg::MObject>> m_objects;
     std::vector<std::unique_ptr<btFixedConstraint>> m_constraints;
     std::unique_ptr<MObjectCreator> m_objectCreator;
