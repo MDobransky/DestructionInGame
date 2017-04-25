@@ -107,7 +107,6 @@ void gg::MGame::Run(bool debug, bool gravity)
         m_irrDriver->endScene();
 
         m_irrDevice->run();
-
     }
 
     //ClearObjects();
@@ -158,6 +157,37 @@ void  gg::MGame::CreateStartScene()
     //rendered distance
     m_Camera->setFarValue(1000);
 
+/*
+    scene::IParticleSystemSceneNode* ps =
+    m_irrScene->addParticleSystemSceneNode(false);
+
+    scene::IParticleEmitter* em = ps->createSphereEmitter(
+        vector3df(0,0,0), // emitter size
+        0.5,
+        core::vector3df(0.0f,0.0f,0.0f),   // initial direction
+        1,10,                             // emit rate
+        video::SColor(0,0,0,0),       // darkest color
+        video::SColor(0,100,100,100),       // brightest color
+        10000,11000,0,                         // min and max age, angle
+        core::dimension2df(0.1,0.1),         // min size
+        core::dimension2df(2.f,2.f));        // max size
+
+    ps->setEmitter(em); // this grabs the emitter
+    em->drop(); // so we can drop it here without deleting it
+
+    scene::IParticleAffector* paf = ps->createFadeOutParticleAffector();
+
+    ps->addAffector(paf); // same goes for the affector
+    paf->drop();
+
+    ps->setPosition(core::vector3df(0,0,0));
+    ps->setScale(core::vector3df(1,1,1));
+    ps->setMaterialFlag(video::EMF_LIGHTING, false);
+    ps->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
+    ps->setMaterialTexture(0, m_irrDriver->getTexture("media/dust.png"));
+    ps->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
+    ps->doParticleSystem(1000);
+*/
     for(auto&& object : m_objects)
     {
         UpdateRender(object->getRigid());

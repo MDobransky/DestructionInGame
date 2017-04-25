@@ -189,8 +189,9 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
 
 
     IMesh* mesh = m_irrDevice->getSceneManager()->getMesh((m_media + items[0]).c_str());
+    IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
+    mesh = Node->getMesh();
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
-    IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode( mesh );
     Node->setRotation(rotation);
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_LIGHTING, 1);
