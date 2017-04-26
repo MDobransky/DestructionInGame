@@ -1,6 +1,2 @@
 build
-src/bakalarka.pro
-src/bakalarka.pro.user
-media/*.blend
-*.o
-game
+Qtbuild

@@ -26,4 +26,3 @@ $(BUILDDIR):
 
 clean:
 	rm -f $(OBJS) $(PROG)
-

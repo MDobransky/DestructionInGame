@@ -26,6 +26,8 @@ public:
     static const MMaterial Dirt;
     static const MMaterial Rock;
     static const MMaterial Magic;
+    static const MMaterial Ship;
+
     static const MMaterial* getMaterial(char m)
     {
         switch (m) {
@@ -39,8 +41,8 @@ public:
             return &Dirt;
         case 'R':
             return &Rock;
-        case 'H':
-            return &Shot;
+        case 'N':
+            return &Ship;
         default : return &Magic;
         }
     }

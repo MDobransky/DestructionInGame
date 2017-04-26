@@ -194,7 +194,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
     Node->setRotation(rotation);
     Node->setMaterialType(EMT_SOLID);
-    Node->setMaterialFlag(EMF_LIGHTING, 1);
+    Node->setMaterialFlag(EMF_LIGHTING, 0);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
     if(items[1] != "")
         Node->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture((m_media + items[1]).c_str()));

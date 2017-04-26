@@ -2,6 +2,7 @@
 #include "Material.h"
 #include <iostream>
 #include <string>
+#include <algorithm>
 
 
 using namespace irr;
@@ -326,11 +327,16 @@ void  gg::MGame::Shoot()
 // - TDeltaTime tells the simulation how much time has passed since the last frame so the simulation can run independently of the frame rate.
 void  gg::MGame::UpdatePhysics(u32 TDeltaTime)
 {
+    m_objects.erase(std::remove_if(m_objects.begin(),m_objects.end(),[](auto&& x){return x->isDeleted();}),m_objects.end());
     m_btWorld->stepSimulation(TDeltaTime * 0.001f, 1, 1./60.);
     for(auto&& object : m_objects)
     {
-        UpdateRender(object->getRigid());
+        if(!object->isDeleted())
+        {
+            UpdateRender(object->getRigid());
+        }
     }
+    MCollisionResolver CollisionResolver(m_irrDevice.get(), m_btWorld);
 }
 
 // Passes bullet's orientation to irrlicht

@@ -4,6 +4,7 @@
 #include "Object.h"
 #include "EventReceiver.h"
 #include "Loader.h"
+#include "CollisionResolver.h"
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
@@ -59,7 +60,6 @@ private:
     std::vector<std::unique_ptr<btFixedConstraint>> m_constraints;
 
 public:
-
     void Run(bool debug, bool gravity);
     ~MGame();
     MGame();
@@ -96,7 +96,7 @@ public:
          newColor);
    }
 
-   void drawContactPoint(const btVector3& PointOnB, const btVector3& normalOnB, btScalar distance, int lifeTime, const btVector3& color)
+   void drawContactPoint(const btVector3& PointOnB, const btVector3& normalOnB, btScalar distance, int, const btVector3&)
    {
       static const irr::video::SColor CONTACTPOINT_COLOR(255, 255, 255, 0); //bullet's are black :(
 
@@ -115,7 +115,7 @@ public:
       this->logger->log(text, irr::ELL_ERROR);
    }
 
-   void draw3dText(const btVector3& location, const char* text) { }
+   void draw3dText(const btVector3&, const char*) { }
 
    void setDebugMode(int mode) { this->mode = mode; }
 

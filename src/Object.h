@@ -19,13 +19,15 @@ class MObject
 private:
     std::unique_ptr<btRigidBody> m_rigidBody;
     irr::scene::ISceneNode* m_irrSceneNode;
-    bool m_empty;
+    bool m_empty, m_deleted = false;
     const MMaterial* m_material;
 public:
     btRigidBody* getRigid() { return m_rigidBody.get(); }
     irr::scene::ISceneNode* getNode() { return m_irrSceneNode; }
     const MMaterial* getMaterial() { return m_material; }
     bool isEmpty() { return m_empty; }
+    bool isDeleted() { return m_deleted; }
+    void setDeleted() { m_deleted = true; }
 
     ~MObject()
     {
@@ -38,13 +40,14 @@ public:
         }
     }
 
-    MObject () : m_empty(true) {}
+    MObject () : m_empty(true), m_deleted(false) {}
 
     MObject (btRigidBody* rb, irr::scene::ISceneNode* sn) :
         m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
         m_irrSceneNode(sn)
     {
         m_empty = m_rigidBody == nullptr;
+        m_deleted = false;
     }
 
     MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, const MMaterial* mat) :
@@ -53,6 +56,7 @@ public:
         m_material(mat)
     {
         m_empty = m_rigidBody == nullptr;
+        m_deleted = false;
     }
 
     MObject (MObject&& newObj)
@@ -60,6 +64,7 @@ public:
         m_rigidBody = std::move(newObj.m_rigidBody);
         m_irrSceneNode = newObj.m_irrSceneNode;
         m_material = newObj.m_material;
+        m_deleted = newObj.m_deleted;
     }
 
     MObject (MObject&) = delete;
