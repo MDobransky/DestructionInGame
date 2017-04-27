@@ -22,29 +22,59 @@ std::vector<gg::MObject *> gg::MCollisionResolver::getDeleted()
     return std::move(m_toDelete);
 }
 
-void gg::MCollisionResolver::resolveCollision(MObject * A, btVector3 & pA, MObject * B, btVector3 & pB, btScalar & impulse)
+void gg::MCollisionResolver::resolveCollision(MObject * obj, btVector3 & pA, btScalar & impulse)
 {
-    if((A->getMaterial() == &MMaterial::Shot || B->getMaterial() == &MMaterial::Shot) && A->getMaterial() != &MMaterial::Ship && B->getMaterial() != &MMaterial::Ship)
+    const MMaterial* material = obj->getMaterial();
+    if(material == &MMaterial::Magic)
     {
-        if(A->getMaterial() != &MMaterial::Magic && impulse > 100)
+        //nothing
+    }
+    else if(material == &MMaterial::Shot && impulse > 100)
+    {
+        m_btWorld->removeCollisionObject(obj->getRigid());
+        obj->removeNode();
+        obj->setDeleted();
+    }
+    else if(material != &MMaterial::Ship)
+    {
+        if(impulse > 100) //get material property
         {
-            m_btWorld->removeCollisionObject(A->getRigid());
-            A->removeNode();
-            A->setDeleted();
+
+
+            scene::IParticleSystemSceneNode* ps =
+            m_irrDevice->getSceneManager()->addParticleSystemSceneNode(false);
+
+            scene::IParticleEmitter* em = ps->createSphereEmitter(
+                vector3df(0,0,0),
+                5.f,
+                core::vector3df(0.0f,0.0f,0.0f),   // initial direction
+                1000,10000,                             // emit rate
+                video::SColor(0,0,0,0),       // darkest color
+                video::SColor(0,100,100,100),       // brightest color
+                1000,2000,0,                         // min and max age, angle
+                core::dimension2df(1,1),         // min size
+                core::dimension2df(3.f,3.f));        // max size
+
+            ps->setEmitter(em); // this grabs the emitter
+            em->drop(); // so we can drop it here without deleting it
+
+            scene::IParticleAffector* paf = ps->createFadeOutParticleAffector();
+
+            ps->addAffector(paf); // same goes for the affector
+            paf->drop();
+
+            ps->setPosition(obj->getNode()->getAbsolutePosition());
+            ps->setScale(core::vector3df(1,1,1));
+            ps->setMaterialFlag(video::EMF_LIGHTING, false);
+            ps->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
+            ps->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/dust2.png"));
+            ps->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
+            ps->doParticleSystem(1000);
+
+            m_btWorld->removeCollisionObject(obj->getRigid());
+            obj->removeNode();
+            obj->setDeleted();
         }
-        if(B->getMaterial() != &MMaterial::Magic && impulse > 100)
-        {
-            m_btWorld->removeCollisionObject(B->getRigid());
-            B->removeNode();
-            B->setDeleted();
-        }
-        /*btRigidBody* bodyA = A->getRigid();
-        btRigidBody* bodyB = B->getRigid();
-        btTransform tr;
-        tr.setIdentity();
-        btFixedConstraint* fixed = new btFixedConstraint(*bodyA,*bodyB,tr,tr);
-        fixed->setBreakingImpulseThreshold(10000);
-        m_btWorld->addConstraint(fixed);*/
     }
 }
 
@@ -68,7 +98,14 @@ void gg::MCollisionResolver::resolveAll()
             btScalar impulse = pt.getAppliedImpulse();
             MObject* objectA = static_cast<MObject*>(obA->getUserPointer());
             MObject* objectB = static_cast<MObject*>(obB->getUserPointer());
-            resolveCollision(objectA, ptA, objectB, ptB, impulse);
+            if(!objectA->isDeleted())
+            {
+                resolveCollision(objectA, ptA, impulse);
+            }
+            if(!objectB->isDeleted())
+            {
+                resolveCollision(objectB, ptB, impulse);
+            }
         }
     }
 }

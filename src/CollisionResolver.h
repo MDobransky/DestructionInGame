@@ -20,7 +20,7 @@ public:
     MCollisionResolver(irr::IrrlichtDevice*, btDiscreteDynamicsWorld*);
     ~MCollisionResolver();
     std::vector<MObject*> getDeleted();
-    void resolveCollision(MObject*, btVector3&, MObject*, btVector3&, btScalar&);
+    void resolveCollision(MObject*, btVector3&, btScalar&);
 
 private:
     void resolveAll();
