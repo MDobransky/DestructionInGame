@@ -1,4 +1,4 @@
-CXX= g++ -std=c++14
+CXX= g++ -std=c++14 -g
 LD= g++ -std=c++14
 CXXFLAGS= -Wall -O3 -pedantic
 TETFLAGS= -O3 -Wno-unused-result -Wno-unused-but-set-variable 

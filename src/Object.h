@@ -28,6 +28,14 @@ public:
     bool isEmpty() { return m_empty; }
     bool isDeleted() { return m_deleted; }
     void setDeleted() { m_deleted = true; }
+    void removeNode()
+    {
+        if(m_irrSceneNode)
+        {
+            m_irrSceneNode->remove();
+            m_irrSceneNode = 0;
+        }
+    }
 
     ~MObject()
     {

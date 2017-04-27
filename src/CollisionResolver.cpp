@@ -26,16 +26,16 @@ void gg::MCollisionResolver::resolveCollision(MObject * A, btVector3 & pA, MObje
 {
     if((A->getMaterial() == &MMaterial::Shot || B->getMaterial() == &MMaterial::Shot) && A->getMaterial() != &MMaterial::Ship && B->getMaterial() != &MMaterial::Ship)
     {
-        if(A->getMaterial() != &MMaterial::Magic)
+        if(A->getMaterial() != &MMaterial::Magic && impulse > 100)
         {
             m_btWorld->removeCollisionObject(A->getRigid());
-            A->getNode()->remove();
+            A->removeNode();
             A->setDeleted();
         }
-        if(B->getMaterial() != &MMaterial::Magic)
+        if(B->getMaterial() != &MMaterial::Magic && impulse > 100)
         {
             m_btWorld->removeCollisionObject(B->getRigid());
-            B->getNode()->remove();
+            B->removeNode();
             B->setDeleted();
         }
         /*btRigidBody* bodyA = A->getRigid();

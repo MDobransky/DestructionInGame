@@ -158,20 +158,21 @@ void  gg::MGame::CreateStartScene()
     //rendered distance
     m_Camera->setFarValue(1000);
 
-/*
+
     scene::IParticleSystemSceneNode* ps =
     m_irrScene->addParticleSystemSceneNode(false);
+    ps->setParent(m_IShip);
 
     scene::IParticleEmitter* em = ps->createSphereEmitter(
-        vector3df(0,0,0), // emitter size
-        0.5,
+        vector3df(0,0,0),
+        0.01,
         core::vector3df(0.0f,0.0f,0.0f),   // initial direction
-        1,10,                             // emit rate
+        1000,1000,                             // emit rate
         video::SColor(0,0,0,0),       // darkest color
         video::SColor(0,100,100,100),       // brightest color
-        10000,11000,0,                         // min and max age, angle
+        1000,2000,0,                         // min and max age, angle
         core::dimension2df(0.1,0.1),         // min size
-        core::dimension2df(2.f,2.f));        // max size
+        core::dimension2df(0.15f,0.15f));        // max size
 
     ps->setEmitter(em); // this grabs the emitter
     em->drop(); // so we can drop it here without deleting it
@@ -181,14 +182,14 @@ void  gg::MGame::CreateStartScene()
     ps->addAffector(paf); // same goes for the affector
     paf->drop();
 
-    ps->setPosition(core::vector3df(0,0,0));
+    ps->setPosition(core::vector3df(0,0,0.35));
     ps->setScale(core::vector3df(1,1,1));
     ps->setMaterialFlag(video::EMF_LIGHTING, false);
     ps->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
-    ps->setMaterialTexture(0, m_irrDriver->getTexture("media/dust.png"));
+    ps->setMaterialTexture(0, m_irrDriver->getTexture("media/glow.jpg"));
     ps->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
-    ps->doParticleSystem(1000);
-*/
+    //ps->doParticleSystem(1000);
+
     for(auto&& object : m_objects)
     {
         UpdateRender(object->getRigid());
@@ -244,7 +245,7 @@ void  gg::MGame::ApplyEvents()
     if(m_events->keyDown('X'))
     {
         m_velocity += 1;
-        if(m_velocity >= 0) m_velocity = -1;
+        if(m_velocity >= 0) m_velocity = 0;
     }
 
     if(m_events->keyDown(irr::KEY_SPACE))
@@ -278,36 +279,34 @@ void gg::MGame::ApplySettings()
 
 void  gg::MGame::Shoot()
 {
-
     ///bullet size
-    scene::IMeshSceneNode *Node = m_irrScene->addSphereSceneNode(0.01f);
+    ISceneNode* Node = m_irrScene->addLightSceneNode();
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-    m_irrDevice->getSceneManager()->getMeshManipulator()->setVertexColors(Node->getMesh(), SColor(0, 255,0,0));
 
     // Set the initial position
     btTransform Transform;
     Transform.setIdentity();
 
-    btVector3 start(0,-0.1,-0.2);
+    btVector3 start(0,-0.1,-0.5);
     Transform.setOrigin(m_btShip->getCenterOfMassPosition() + m_btShip->getWorldTransform().getBasis() * start);
 
     // Give it a default MotionState
     btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
 
     // Create the shape/hitbox
-    btCollisionShape *Shape = new btSphereShape(0.01f);
+    btCollisionShape *Shape = new btSphereShape(0.1f);
 
     // Add mass
     btVector3 LocalInertia;
-    btScalar Mass = 75.0f;
+    btScalar Mass = 750.0f;
     Shape->calculateLocalInertia(Mass, LocalInertia);
 
     // Create the rigid body object
     btRigidBody *bullet = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
 
     //shoot it with speed
-    bullet->applyImpulse(m_btShip->getWorldTransform().getBasis() * btVector3(0,0,-7500), m_btShip->getCenterOfMassPosition());
+    bullet->applyImpulse(m_btShip->getWorldTransform().getBasis() * btVector3(0,0,-75000), m_btShip->getCenterOfMassPosition());
 
     MObject* obj = new MObject(bullet, Node, &MMaterial::Shot);
 
@@ -319,6 +318,17 @@ void  gg::MGame::Shoot()
     bullet->setGravity(btVector3(0,0,0));
 
     m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+
+
+    // attach billboard to light
+
+    ISceneNode* nodeB = m_irrScene->addBillboardSceneNode(Node, core::dimension2d<f32>(0.5, 0.5));
+    nodeB->setMaterialFlag(video::EMF_LIGHTING, false);
+    nodeB->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
+    nodeB->setMaterialTexture(0, m_irrDriver->getTexture("media/shot3.jpg"));
+
+    //nodeB->remove();
+
 }
 
 //following functions are copied from http://www.irrlicht3d.org/wiki/index.php?n=Main.GettingStartedWithBullet
