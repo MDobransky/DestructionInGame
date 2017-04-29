@@ -68,21 +68,21 @@ void gg::MGame::Run(bool debug, bool gravity)
     {
         m_btWorld->setGravity(btVector3(0,-256,0));
     }
-
+    m_velocity = -10;
     CreateStartScene();
 
-    m_velocity = -10;
     IGUIStaticText* fpsTextElement = m_irrScene->getGUIEnvironment()->addStaticText(L"", rect<s32>(35, 35, 140, 50), false, false, 0);
-
+///////////////////////////////////////////
     // Main loop
     u32 TimeStamp = m_irrTimer->getTime(), DeltaTime = 0;
     //u32 realStamp = m_irrTimer->getRealTime();
+    stringw str = L"FPS: ";
+    stringw fps;
     while(!m_done) {
-        int fps = m_irrDriver->getFPS();
-        stringw str = L"FPS: ";
-        str += fps;
-        fpsTextElement->setText(str.c_str());
-        m_irrDevice->setWindowCaption(str.c_str());
+        fps = str;
+        fps += m_irrDriver->getFPS();
+        fpsTextElement->setText(fps.c_str());
+        m_irrDevice->setWindowCaption(fps.c_str());
 
         DeltaTime = m_irrTimer->getTime() - TimeStamp;
         TimeStamp = m_irrTimer->getTime();
@@ -93,8 +93,12 @@ void gg::MGame::Run(bool debug, bool gravity)
             m_btShip->setLinearVelocity(m_btShip->getWorldTransform().getBasis() * (btVector3( 0.f, 0.0f, m_velocity )));
             UpdatePhysics(DeltaTime);
         }
+        //camera
+        btVector3 newup = quatRotate(m_btShip->getOrientation(),btVector3(0,1,0));
+        btVector3 newtarg = m_btShip->getCenterOfMassPosition() +  m_btShip->getLinearVelocity();
+        m_Camera->setUpVector(vector3df(newup.getX(),newup.getY(),newup.getZ()));
+        m_Camera->setTarget(vector3df(newtarg.getX(),newtarg.getY(),newtarg.getZ()));
         //draw
-        m_Camera->setTarget(m_IShip->getPosition() + vector3df(0,0.3,0));
         m_irrDriver->beginScene(true, true, SColor(255, 20, 0, 0));
         m_irrScene->drawAll();
 
@@ -104,12 +108,12 @@ void gg::MGame::Run(bool debug, bool gravity)
             m_irrDriver->setTransform(irr::video::ETS_WORLD, irr::core::IdentityMatrix);
             m_btWorld->debugDrawWorld();
         }
+
         m_irrGUI->drawAll();
         m_irrDriver->endScene();
-
         m_irrDevice->run();
     }
-
+/////////////////////////////////////////////////////////////
     //ClearObjects();
     delete m_btWorld;
     delete Solver;
@@ -132,6 +136,7 @@ void  gg::MGame::CreateStartScene()
         {
             m_btShip = m_objects[i]->getRigid();
             m_btShip->setActivationState(DISABLE_DEACTIVATION);
+            m_btShip->setLinearVelocity(m_btShip->getWorldTransform().getBasis() * (btVector3( 0.f, 0.0f, m_velocity )));
             m_IShip = m_objects[i]->getNode();
         }
         m_btWorld->addRigidBody(m_objects[i]->getRigid());
@@ -153,7 +158,8 @@ void  gg::MGame::CreateStartScene()
     btVector3 trans = m_btShip->getWorldTransform().getBasis() * btVector3(0,0.3,1);
     m_Camera->setPosition(vector3df(trans.getX(),trans.getY(),trans.getZ()));
     m_Camera->setParent(m_IShip);
-    m_Camera->bindTargetAndRotation(1);
+    btVector3 newtarg = m_btShip->getCenterOfMassPosition() +  m_btShip->getLinearVelocity();
+    m_Camera->setTarget(vector3df(newtarg.getX(),newtarg.getY(),newtarg.getZ()));
 
     //rendered distance
     m_Camera->setFarValue(1000);
@@ -167,10 +173,10 @@ void  gg::MGame::CreateStartScene()
         vector3df(0,0,0),
         0.01,
         core::vector3df(0.0f,0.0f,0.0f),   // initial direction
-        1000,1000,                             // emit rate
+        300,500,                             // emit rate
         video::SColor(0,0,0,0),       // darkest color
-        video::SColor(0,100,100,100),       // brightest color
-        1000,2000,0,                         // min and max age, angle
+        video::SColor(0,250,250,250),       // brightest color
+        300,500,0,                         // min and max age, angle
         core::dimension2df(0.1,0.1),         // min size
         core::dimension2df(0.15f,0.15f));        // max size
 
@@ -198,7 +204,7 @@ void  gg::MGame::CreateStartScene()
 
 void  gg::MGame::ApplyEvents()
 {
-    const float torque = 0.05f;
+    const float torque = std::sqrt(m_btShip->getLinearVelocity().length())/100;
 
     if(m_events->keyDown('W'))
     {
@@ -212,25 +218,25 @@ void  gg::MGame::ApplyEvents()
         m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(torque,0,0) + m_btShip->getAngularVelocity());
     }
 
-    if(m_events->keyDown('A'))
-    {
-        m_btShip->setDamping(0,0.9);
-        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,-torque/2,0) + m_btShip->getAngularVelocity());
-    }
-
-    if(m_events->keyDown('D'))
-    {
-        m_btShip->setDamping(0,0.9);
-        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,torque/2,0) + m_btShip->getAngularVelocity());
-    }
-
     if(m_events->keyDown('Q'))
+    {
+        m_btShip->setDamping(0,0.9);
+        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,-torque,0) + m_btShip->getAngularVelocity());
+    }
+
+    if(m_events->keyDown('E'))
+    {
+        m_btShip->setDamping(0,0.9);
+        m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,torque,0) + m_btShip->getAngularVelocity());
+    }
+
+    if(m_events->keyDown('A'))
     {
         m_btShip->setDamping(0,0.9);
         m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,0,-torque) + m_btShip->getAngularVelocity());
     }
 
-    if(m_events->keyDown('E'))
+    if(m_events->keyDown('D'))
     {
         m_btShip->setDamping(0,0.9);
         m_btShip->setAngularVelocity(m_btShip->getWorldTransform().getBasis() * btVector3(0,0,torque) + m_btShip->getAngularVelocity());
