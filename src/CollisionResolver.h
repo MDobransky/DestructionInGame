@@ -20,11 +20,10 @@ public:
     MCollisionResolver(irr::IrrlichtDevice*, btDiscreteDynamicsWorld*);
     ~MCollisionResolver();
     std::vector<MObject*> getDeleted();
-    void resolveCollision(MObject*, btVector3&, btScalar&);
-
-private:
+    bool isInside(btRigidBody*, btVector3&);
     void resolveAll();
-
+private:
+    void resolveCollision(MObject*, btVector3&, btScalar&);
     irr::IrrlichtDevice* m_irrDevice;
     btDiscreteDynamicsWorld * m_btWorld;
     std::vector<MObject*> m_toDelete;

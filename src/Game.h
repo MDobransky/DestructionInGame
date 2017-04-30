@@ -9,6 +9,7 @@
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
 #include <btBulletDynamicsCommon.h>
+#include <voro++/voro++.hh>
 
 #include <cstdlib>
 #include <utility>
@@ -58,6 +59,7 @@ private:
     btTransform m_terrainTransform;
     btVector3 m_minBound, m_maxBoud;
     std::vector<std::unique_ptr<btFixedConstraint>> m_constraints;
+    std::unique_ptr<MCollisionResolver> m_resolver;
 
 public:
     void Run(bool debug, bool gravity);

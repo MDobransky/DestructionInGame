@@ -9,7 +9,6 @@ using namespace gui;
 
 gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice *irrDev, btDiscreteDynamicsWorld *btDDW) : m_irrDevice(irrDev), m_btWorld(btDDW)
 {
-    resolveAll();
 }
 
 gg::MCollisionResolver::~MCollisionResolver()
@@ -39,7 +38,7 @@ void gg::MCollisionResolver::resolveCollision(MObject * obj, btVector3 & pA, btS
     {
         if(impulse > 100) //get material property
         {
-
+/*
 
             scene::IParticleSystemSceneNode* ps =
             m_irrDevice->getSceneManager()->addParticleSystemSceneNode(false);
@@ -70,12 +69,35 @@ void gg::MCollisionResolver::resolveCollision(MObject * obj, btVector3 & pA, btS
             ps->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/dust2.png"));
             ps->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
             ps->doParticleSystem(1000);
-
+*/
             m_btWorld->removeCollisionObject(obj->getRigid());
             obj->removeNode();
             obj->setDeleted();
         }
     }
+}
+#include <iomanip>
+#include <limits>
+bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3& point)
+{
+//TODO find better starting point, check only one object is crossed
+    btVector3 heaven = body->getCenterOfMassPosition() + btVector3(0,1000,0); //must be outside body and (heaven, point) can't cross any other body
+    int in = 0, out = 0;
+    btVector3 last = heaven;
+
+    btCollisionWorld::AllHitsRayResultCallback clbck(heaven, point); //entering body
+    m_btWorld->rayTest(heaven, point, clbck);
+    for(int i = 0; i < clbck.m_hitPointWorld.size(); i++)
+    {
+        if(int(last.getX()*100) != int(clbck.m_hitPointWorld[i].getX()*100) || //this can fail on extra thin walls
+           int(last.getY()*100) != int(clbck.m_hitPointWorld[i].getY()*100) || //we have to filter almost equal positions because edges and vertices count multiple times
+           int(last.getZ()*100) != int(clbck.m_hitPointWorld[i].getZ()*100))
+        {
+            last = clbck.m_hitPointWorld[i];
+            in++;
+        }
+    }
+    return in%2;
 }
 
 void gg::MCollisionResolver::resolveAll()

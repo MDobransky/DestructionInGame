@@ -5,8 +5,7 @@ Roll: Q/E
 Speed: Z/X
 Shoot: Space
 
-dependencies: libbullet-dev libirrlicht-dev
-included lib: tetgen
+dependencies: libbullet-dev libirrlicht-dev voro++-dev
 
 input meshes for destructible bodies: .ply with no duplicate faces
  
