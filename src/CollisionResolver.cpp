@@ -21,7 +21,7 @@ std::vector<gg::MObject *> gg::MCollisionResolver::getDeleted()
     return std::move(m_toDelete);
 }
 
-void gg::MCollisionResolver::resolveCollision(MObject * obj, btVector3 & pA, btScalar & impulse)
+void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btVector3 from, btScalar impulse)
 {
     const MMaterial* material = obj->getMaterial();
     if(material == &MMaterial::Magic)
@@ -36,16 +36,15 @@ void gg::MCollisionResolver::resolveCollision(MObject * obj, btVector3 & pA, btS
     }
     else if(material != &MMaterial::Ship)
     {
-        if(impulse > 100) //get material property
+        if(impulse > 50) //get material property
         {
-/*
-
-            scene::IParticleSystemSceneNode* ps =
+            generateVoro(obj,point,from,3);
+        /*    scene::IParticleSystemSceneNode* ps =
             m_irrDevice->getSceneManager()->addParticleSystemSceneNode(false);
 
             scene::IParticleEmitter* em = ps->createSphereEmitter(
-                vector3df(0,0,0),
-                5.f,
+                vector3df(point.getX(),point.getY(),point.getZ()),
+                2.f,
                 core::vector3df(0.0f,0.0f,0.0f),   // initial direction
                 1000,10000,                             // emit rate
                 video::SColor(0,0,0,0),       // darkest color
@@ -69,24 +68,64 @@ void gg::MCollisionResolver::resolveCollision(MObject * obj, btVector3 & pA, btS
             ps->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/dust2.png"));
             ps->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
             ps->doParticleSystem(1000);
-*/
+            */
             m_btWorld->removeCollisionObject(obj->getRigid());
             obj->removeNode();
             obj->setDeleted();
         }
     }
 }
-#include <iomanip>
-#include <limits>
-bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3& point)
-{
-//TODO find better starting point, check only one object is crossed
-    btVector3 heaven = body->getCenterOfMassPosition() + btVector3(0,1000,0); //must be outside body and (heaven, point) can't cross any other body
-    int in = 0, out = 0;
-    btVector3 last = heaven;
 
-    btCollisionWorld::AllHitsRayResultCallback clbck(heaven, point); //entering body
-    m_btWorld->rayTest(heaven, point, clbck);
+void gg::MCollisionResolver::generateVoro(gg::MObject* obj, btVector3 point, btVector3 from, btScalar size)
+{
+using namespace voro;
+    float cube_size = size + size*0.2f;
+    container con(point.getX()-cube_size,point.getX()+cube_size,
+                  point.getY()-cube_size,point.getY()+cube_size,
+                  point.getZ()-cube_size,point.getZ()+cube_size,
+                  int(size),int(size),int(size),
+                  false,false,false,
+                  8);
+
+    wall_cylinder cyl(point.getX(),point.getY(),point.getZ(),
+                      from.getX(),from.getY(),from.getZ(),
+                      size);
+    con.add_wall(cyl);
+
+    wall_custom body_wall(this,obj->getRigid(),from);
+    con.add_wall(body_wall);
+
+    for(int i = 0; i < 100; i++)
+    {
+        int x = rand()%int(2*cube_size)+point.getX()-cube_size;
+        int y = rand()%int(2*cube_size)+point.getY()-cube_size;
+        int z = rand()%int(2*cube_size)+point.getZ()-cube_size;
+        if(con.point_inside(x,y,z))
+        {
+            con.put(i,x,y,z);
+        }
+
+    }
+    c_loop_all loop(con);
+    loop.start();
+    voronoicell c;
+    std::vector<double> vertices;
+    do if(con.compute_cell(c,loop))
+    {
+        c.vertices(vertices);
+        std::cout << vertices.size()/3 << "\n";
+        std::cout << c.number_of_faces() << "\n";
+        std::cout << c.number_of_edges() << "\n";
+    } while (loop.inc());
+}
+
+bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3 point,btVector3 from)
+{
+    int in = 0;
+    btVector3 last = from;
+
+    btCollisionWorld::AllHitsRayResultCallback clbck(from, point); //entering body
+    m_btWorld->rayTest(from, point, clbck);
     for(int i = 0; i < clbck.m_hitPointWorld.size(); i++)
     {
         if(int(last.getX()*100) != int(clbck.m_hitPointWorld[i].getX()*100) || //this can fail on extra thin walls
@@ -97,6 +136,13 @@ bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3& point)
             in++;
         }
     }
+   /* if(in%2)
+    {
+        ISceneNode* node = m_irrDevice->getSceneManager()->addSphereSceneNode();
+        btVector3 spot = body->getWorldTransform() * point;
+        node->setPosition(vector3df(spot.getX(),spot.getY(),spot.getZ()));
+        std::cout << "yes\n";
+    }*/
     return in%2;
 }
 
@@ -116,17 +162,18 @@ void gg::MCollisionResolver::resolveAll()
             btManifoldPoint& pt = contactManifold->getContactPoint(0);
             btVector3 ptA = pt.getPositionWorldOnA();
             btVector3 ptB = pt.getPositionWorldOnB();
-            //btVector3& normalOnB = pt.m_normalWorldOnB;
+
             btScalar impulse = pt.getAppliedImpulse();
             MObject* objectA = static_cast<MObject*>(obA->getUserPointer());
             MObject* objectB = static_cast<MObject*>(obB->getUserPointer());
+            //btVector3 from = pt.m_normalWorldOnB;
             if(!objectA->isDeleted())
             {
-                resolveCollision(objectA, ptA, impulse);
+                resolveCollision(objectA, ptA, ptA-ptB, impulse);
             }
             if(!objectB->isDeleted())
             {
-                resolveCollision(objectB, ptB, impulse);
+                resolveCollision(objectB, ptB, ptB-ptA, impulse);
             }
         }
     }

@@ -188,8 +188,9 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     const btScalar Mass = numbers[9];
 
 
-    IMesh* mesh = m_irrDevice->getSceneManager()->getMesh((m_media + items[0]).c_str());
-    mesh = m_irrDevice->getSceneManager()->getMeshManipulator()->createMeshUniquePrimitives(mesh);
+    IMesh* mesh_orig = m_irrDevice->getSceneManager()->getMesh((m_media + items[0]).c_str());
+    IMesh* mesh = m_irrDevice->getSceneManager()->getMeshManipulator()->createMeshUniquePrimitives(mesh_orig);
+
     IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,scale);
     Node->setRotation(rotation);
@@ -368,12 +369,12 @@ btBvhTriangleMeshShape* gg::MObjectCreator::convertMesh(IMeshSceneNode * node)
 
         for (u32 i = 0; i < meshBuffer->getIndexCount(); i += 3)
         {
-            vector3df triangle1 = vertices[indices[i]].Pos;
-            vector3df triangle2 = vertices[indices[i + 1]].Pos;
-            vector3df triangle3 = vertices[indices[i + 2]].Pos;
-            btMesh->addTriangle(btVector3(triangle1.X, triangle1.Y, triangle1.Z),
-                                btVector3(triangle2.X, triangle2.Y, triangle2.Z),
-                                btVector3(triangle3.X, triangle3.Y, triangle3.Z));
+            vector3df point1 = vertices[indices[i]].Pos;
+            vector3df point2 = vertices[indices[i + 1]].Pos;
+            vector3df point3 = vertices[indices[i + 2]].Pos;
+            btMesh->addTriangle(btVector3(point1.X, point1.Y, point1.Z),
+                                btVector3(point2.X, point2.Y, point2.Z),
+                                btVector3(point3.X, point3.Y, point3.Z));
         }
     }
     return new btBvhTriangleMeshShape( btMesh, true );

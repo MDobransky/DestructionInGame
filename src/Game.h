@@ -9,7 +9,6 @@
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
 #include <btBulletDynamicsCommon.h>
-#include <voro++/voro++.hh>
 
 #include <cstdlib>
 #include <utility>
