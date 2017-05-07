@@ -1,13 +1,26 @@
 #include "CollisionResolver.h"
-
 using namespace irr;
 using namespace core;
 using namespace scene;
 using namespace video;
 using namespace io;
 using namespace gui;
+#define debug
+#ifdef debug
+std::ostream& operator<<(std::ostream& os, const irr::core::vector3df& v)
+{
+    os << "(" << v.X << " " << v.Y << " " << v.Z << ")";
+    return os;
+}
 
-gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice *irrDev, btDiscreteDynamicsWorld *btDDW) : m_irrDevice(irrDev), m_btWorld(btDDW)
+std::ostream& operator<<(std::ostream& os, const btVector3& v)
+{
+    os << "(" << v.getX() << " " << v.getY() << " " << v.getZ() << ")";
+    return os;
+}
+#endif
+
+gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice *irrDev, btDiscreteDynamicsWorld *btDDW, std::vector<std::unique_ptr<MObject>>* objs) : m_irrDevice(irrDev), m_btWorld(btDDW), m_objects(objs)
 {
 }
 
@@ -36,7 +49,7 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
     }
     else if(material != &MMaterial::Ship)
     {
-        if(impulse > 50) //get material property
+        if(impulse > 100) //get material property
         {
             generateVoro(obj,point,from,3);
         /*    scene::IParticleSystemSceneNode* ps =
@@ -110,12 +123,73 @@ using namespace voro;
     loop.start();
     voronoicell c;
     std::vector<double> vertices;
-    do if(con.compute_cell(c,loop))
+    std::vector<int> face_vertices;
+
+    do
     {
-        c.vertices(vertices);
-        std::cout << vertices.size()/3 << "\n";
-        std::cout << c.number_of_faces() << "\n";
-        std::cout << c.number_of_edges() << "\n";
+        if(/*(btVector3(loop.x(),loop.y(),loop.z()) - point).length() > size &&*/ con.compute_cell(c,loop))
+        {
+            c.vertices(vertices);
+            c.face_vertices(face_vertices);
+            SMesh* mesh = new SMesh();
+            SMeshBuffer *buf = 0;
+            buf = new SMeshBuffer();
+            mesh->addMeshBuffer(buf);
+            buf->drop();
+
+            buf->Vertices.reallocate(vertices.size());
+            buf->Vertices.set_used(vertices.size());
+            for(int i = 0; i < vertices.size(); i+=3)
+            {
+                buf->Vertices[i] = S3DVertex(float(vertices[i]),
+                                             float(vertices[i+1]),
+                                             float(vertices[i+2]),
+                                             loop.x(),
+                                             loop.y(),
+                                             loop.z(),
+                                             video::SColor(100,100,100,100), 0, 1);
+            }
+            buf->Indices.reallocate(face_vertices.size()*10);
+
+            int indices = 0;
+            btTriangleMesh *  btMesh = new btTriangleMesh;
+            for(int i = 0; i < face_vertices.size();)
+            {
+                for(int j = 1; j < face_vertices[i]-1; j++)
+                {
+                    int a,b,c;
+                    a = face_vertices[i+1]*3;
+                    b = face_vertices[i+j+1]*3;
+                    c = face_vertices[i+j+2]*3;
+                    btMesh->addTriangle(btVector3(vertices[a],vertices[a+1],vertices[a+2]),
+                                        btVector3(vertices[b],vertices[b+1],vertices[b+2]),
+                                        btVector3(vertices[c],vertices[c+1],vertices[c+2]));
+                    buf->Indices[indices+2] = c;
+                    buf->Indices[indices+1] = b;
+                    buf->Indices[indices] = a;
+
+                    indices += 3;
+                }
+                i += face_vertices[i]+1;
+            }
+            btTransform Transform;
+            Transform.setIdentity();
+            Transform.setOrigin(btVector3(loop.x(),loop.y(),loop.z()));
+            btRigidBody *RigidBody = new btRigidBody(10, new btDefaultMotionState(Transform), new btBvhTriangleMeshShape(btMesh, false), btVector3());
+            m_btWorld->addRigidBody(RigidBody);
+
+            buf->Indices.set_used(indices);
+            buf->recalculateBoundingBox();
+
+            //m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,vector3df(1,1,1));
+            IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
+
+            Node->setPosition(vector3df(loop.x(),loop.y(),loop.z()));
+            MObject* obj = new MObject(RigidBody, Node, &MMaterial::Magic);
+
+            RigidBody->setUserPointer((void *)(obj));
+            m_objects->push_back(std::unique_ptr<gg::MObject>(obj));
+        }
     } while (loop.inc());
 }
 
@@ -164,16 +238,21 @@ void gg::MCollisionResolver::resolveAll()
             btVector3 ptB = pt.getPositionWorldOnB();
 
             btScalar impulse = pt.getAppliedImpulse();
-            MObject* objectA = static_cast<MObject*>(obA->getUserPointer());
-            MObject* objectB = static_cast<MObject*>(obB->getUserPointer());
-            //btVector3 from = pt.m_normalWorldOnB;
-            if(!objectA->isDeleted())
+            if(obA->getUserPointer())
             {
-                resolveCollision(objectA, ptA, ptA-ptB, impulse);
+                MObject* objectA = static_cast<MObject*>(obA->getUserPointer());
+                if(!objectA->isDeleted())
+                {
+                    resolveCollision(objectA, ptA, ptA-ptB, impulse);
+                }
             }
-            if(!objectB->isDeleted())
+            if(obB->getUserPointer())
             {
-                resolveCollision(objectB, ptB, ptB-ptA, impulse);
+                MObject* objectB = static_cast<MObject*>(obB->getUserPointer());
+                if(!objectB->isDeleted())
+                {
+                    resolveCollision(objectB, ptB, ptB-ptA, impulse);
+                }
             }
         }
     }

@@ -18,7 +18,7 @@ namespace gg {
 class MCollisionResolver
 {
 public:
-    MCollisionResolver(irr::IrrlichtDevice*, btDiscreteDynamicsWorld*);
+    MCollisionResolver(irr::IrrlichtDevice*, btDiscreteDynamicsWorld*, std::vector<std::unique_ptr<MObject>>*);
     ~MCollisionResolver();
     std::vector<MObject*> getDeleted();
     bool isInside(btRigidBody* body, btVector3 point, btVector3 from);
@@ -27,7 +27,8 @@ private:
     void resolveCollision(MObject* object, btVector3 point, btVector3 from, btScalar impulse);
     void generateVoro(MObject* body, btVector3 point, btVector3 from, btScalar size);
     irr::IrrlichtDevice* m_irrDevice;
-    btDiscreteDynamicsWorld * m_btWorld;
+    btDiscreteDynamicsWorld* m_btWorld;
+    std::vector<std::unique_ptr<MObject>>* m_objects;
     std::vector<MObject*> m_toDelete;
 
     class wall_custom : public voro::wall

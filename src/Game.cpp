@@ -26,7 +26,7 @@ void gg::MGame::Run(bool debug, bool gravity)
     m_done = false;
     m_irrDevice.reset(createDevice(video::EDT_OPENGL, dimension2d<u32>(1920,1080), 32, false, false, false, m_events));
     m_loader = std::make_unique<MLoader>(m_irrDevice.get());
-    std::tie(m_objects, m_constraints) = m_loader->load("media/levels/1");
+    std::tie(m_objects, m_constraints) = m_loader->load("media/levels/2");
 
     // Initialize irrlicht
     m_irrGUI = m_irrDevice->getGUIEnvironment();
@@ -43,7 +43,7 @@ void gg::MGame::Run(bool debug, bool gravity)
     btSequentialImpulseConstraintSolver *Solver = new btSequentialImpulseConstraintSolver();
     m_btWorld = new btDiscreteDynamicsWorld(Dispatcher, BroadPhase, Solver, CollisionConfiguration);
 
-    m_resolver = std::make_unique<MCollisionResolver>(m_irrDevice.get(), m_btWorld);
+    m_resolver = std::make_unique<MCollisionResolver>(m_irrDevice.get(), m_btWorld, &m_objects);
     MDebugDraw debugDraw(m_irrDevice.get());
        debugDraw.setDebugMode(
              btIDebugDraw::DBG_DrawWireframe |
