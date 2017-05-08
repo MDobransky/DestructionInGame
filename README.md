@@ -1,9 +1,11 @@
 Controls
-Yaw: A/D
+Yaw: Q/E
 Pitch: W/S
-Roll: Q/E
+Roll: A/D
 Speed: Z/X
 Shoot: Space
+Pause: P
+Unpause: Space
 
 dependencies: libbullet-dev libirrlicht-dev voro++-dev
 
