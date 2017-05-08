@@ -1,11 +1,13 @@
 #include "CollisionResolver.h"
-#include <unordered_map>
+#include "MeshManipulators.h"
+
 using namespace irr;
 using namespace core;
 using namespace scene;
 using namespace video;
 using namespace io;
 using namespace gui;
+
 #define debug
 #ifdef debug
 std::ostream& operator<<(std::ostream& os, const irr::core::vector3df& v)
@@ -42,7 +44,7 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
     {
         //nothing
     }
-    else if(material == &MMaterial::Shot && impulse > 50)
+    else if(material == &MMaterial::Shot && impulse > 20)
     {
         m_btWorld->removeCollisionObject(obj->getRigid());
         obj->removeNode();
@@ -50,7 +52,7 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
     }
     else if(material != &MMaterial::Ship)
     {
-        if(impulse > 50) //get material property
+        if(impulse > 20) //get material property
         {
             generateVoro(obj,point,from,2);
         /*    scene::IParticleSystemSceneNode* ps =
@@ -124,10 +126,9 @@ using namespace voro;
     voronoicell c;
     std::vector<double> vertices;
     std::vector<int> face_vertices;
-    do
+    //do
     {
-        btVector3 origin(loop.x(),loop.y(),loop.z());
-        if((origin - point).length() > 2*size/3 && con.compute_cell(c,loop))
+        if(con.compute_cell(c,loop) && (btVector3(loop.x(),loop.y(),loop.z()) - point).length() > 2*size/3)
         {
             c.vertices(vertices);
             c.face_vertices(face_vertices);
@@ -176,20 +177,26 @@ using namespace voro;
             Transform.setIdentity();
             Transform.setOrigin(btVector3(loop.x(),loop.y(),loop.z()));
             btRigidBody *RigidBody = new btRigidBody(0, new btDefaultMotionState(Transform), new btBvhTriangleMeshShape(btMesh, false), btVector3());
-            m_btWorld->addRigidBody(RigidBody);
+            //m_btWorld->addRigidBody(RigidBody);
 
             buf->Indices.set_used(indices);
             buf->recalculateBoundingBox();
 
             IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
-
             Node->setPosition(vector3df(loop.x(),loop.y(),loop.z()));
-            MObject* obj = new MObject(RigidBody, Node, &MMaterial::Magic);
+            //MObject* fragment = new MObject(RigidBody, Node, &MMaterial::Magic);
+            Node->setVisible(0);
 
-            RigidBody->setUserPointer((void *)(obj));
-            m_objects->push_back(std::unique_ptr<gg::MObject>(obj));
+            //RigidBody->setUserPointer((void *)(fragment));
+            //m_objects->push_back(std::unique_ptr<gg::MObject>(fragment));
+
+            IMesh* new_mesh = MeshManipulators::subtractMesh(static_cast<IMeshSceneNode*>(obj->getNode())->getMesh(),mesh, Node->getPosition() - obj->getNode()->getPosition());
+            Node = m_irrDevice->getSceneManager()->addMeshSceneNode(new_mesh);
+            Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+            Node->setPosition(vector3df(-20,-10,-40));
+            Node->setMaterialTexture(0,m_irrDevice->getVideoDriver()->getTexture("media/rubble.jpg"));
         }
-    } while (loop.inc());
+    } //while (loop.inc());
 }
 
 bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3 point,btVector3 from)

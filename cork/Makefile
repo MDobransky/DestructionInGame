@@ -62,9 +62,9 @@ INC       := $(INC) $(GMPINC)
 # use the second line to disable profiling instrumentation
 # PROFILING := -pg
 PROFILING :=
-CCFLAGS   := -Wall $(INC) $(CONFIG) -O2 -DNDEBUG $(PROFILING)
+CCFLAGS   := $(INC) $(CONFIG) -O2 -DNDEBUG $(PROFILING)
 CXXFLAGS  := $(CCFLAGS) $(CPP11_FLAGS)
-CCDFLAGS  := -Wall $(INC) $(CONFIG) -ggdb
+CCDFLAGS  := $(INC) $(CONFIG) -ggdb
 CXXDFLAGS := $(CCDFLAGS)
 
 # Place the location of GMP libraries here
@@ -167,10 +167,7 @@ LIB_TARGET_NAME   := cork
 # *********------+
 # | Target Rules |
 # +--------------+
-all: lib/lib$(LIB_TARGET_NAME).a includes \
-     bin/off2obj bin/cork
-debug: lib/lib$(LIB_TARGET_NAME)debug.a includes
-
+all: lib/lib$(LIB_TARGET_NAME).a includes 
 lib/lib$(LIB_TARGET_NAME).a: $(OBJ)
 	@echo "Bundling $@"
 	@ar rcs $@ $(OBJ)
@@ -178,14 +175,6 @@ lib/lib$(LIB_TARGET_NAME).a: $(OBJ)
 lib/lib$(LIB_TARGET_NAME)debug.a: $(DEBUG)
 	@echo "Bundling $@"
 	@ar rcs $@ $(DEBUG)
-
-bin/cork: $(MAIN_OBJ)
-	@echo "Linking cork command line tool"
-	@$(CXX) -o bin/cork $(MAIN_OBJ) $(LINK)
-
-bin/off2obj: obj/off2obj.o
-	@echo "Linking off2obj"
-	@$(CXX) -o bin/off2obj obj/off2obj.o $(LINK)
 
 # +------------------------------+
 # | Specialized File Build Rules |
@@ -196,7 +185,7 @@ obj/isct/triangle.o: src/isct/triangle.c
 	@$(CC) -O2 -DNO_TIMER \
                -DREDUCED \
                -DCDT_ONLY -DTRILIBRARY \
-               -Wall -DANSI_DECLARATORS \
+               -DANSI_DECLARATORS \
                -o obj/isct/triangle.o -c src/isct/triangle.c
 
 # +------------------------------------+
@@ -236,10 +225,6 @@ include/%.tpp: src/%.tpp
 # | cleaning rule |
 # +---------------+
 clean:
-	-@$(RM) -r obj depend debug include bin lib
-	-@$(RM) bin/off2obj
-#	-@$(RM) gmon.out
-	-@$(RM) lib/lib$(LIB_TARGET_NAME).a
-	-@$(RM) lib/lib$(LIB_TARGET_NAME)debug.a
+	-@$(RM) -r obj depend debug bin lib
 
 -include $(DEPENDS)

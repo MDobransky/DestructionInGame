@@ -332,8 +332,6 @@ void  gg::MGame::Shoot()
     nodeB->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
     nodeB->setMaterialTexture(0, m_irrDriver->getTexture("media/shot3.jpg"));
 
-    //nodeB->remove();
-
 }
 
 //following functions are copied from http://www.irrlicht3d.org/wiki/index.php?n=Main.GettingStartedWithBullet

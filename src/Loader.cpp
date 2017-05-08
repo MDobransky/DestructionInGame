@@ -62,7 +62,7 @@ std::tuple<std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr
                 btFixedConstraint* fixed = new btFixedConstraint(*ground,*obj->getRigid(),ground->getWorldTransform().inverse(),tr);
                 fixed->setBreakingImpulseThreshold(5000);
                 m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
-                m_constraints.push_back(std::unique_ptr<btFixedConstraint>(fixed));
+               // m_constraints.push_back(std::unique_ptr<btFixedConstraint>(fixed));
             }
         }
     }
