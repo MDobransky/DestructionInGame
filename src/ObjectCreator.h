@@ -26,13 +26,9 @@ public:
     MObject* createMeshRigidBody(std::vector<std::string>&&);
     MObject* createBoxedRigidBody(std::vector<std::string>&&);
     MObject* createSolidGround(std::vector<std::string>&&);
-    static btBvhTriangleMeshShape* convertMesh(irr::scene::IMeshSceneNode*);
-    static btConvexHullShape* convertMeshToHull(irr::scene::IMeshSceneNode *);
 private:
     irr::IrrlichtDevice* m_irrDevice;
     const std::string m_media = "media/";
-    std::vector<btVector3> getVertices(irr::scene::IMeshSceneNode*);
-    std::vector<btVector3> getVertices(btConvexHullShape*);
 };
 
 }

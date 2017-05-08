@@ -35,7 +35,7 @@ private:
     {
     public:
 
-        wall_custom(MCollisionResolver* resolv, btRigidBody* body, btVector3& dir, int id=-99)
+        wall_custom(MCollisionResolver* resolv, btRigidBody* body, btVector3& dir, int id=-42)
             : m_resolver(resolv), m_rigidBody(body), m_direction(dir), m_id(id)
         {}
 

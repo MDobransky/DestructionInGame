@@ -9,7 +9,8 @@ SOURCES += main.cpp \
     Game.cpp \
     Loader.cpp \
     Material.cpp \
-    ObjectCreator.cpp
+    ObjectCreator.cpp \
+    MeshManipulators.cpp
 
 HEADERS += \
     CollisionResolver.h \
@@ -18,7 +19,8 @@ HEADERS += \
     Loader.h \
     Material.h \
     Object.h \
-    ObjectCreator.h
+    ObjectCreator.h \
+    MeshManipulators.h
 INCLUDEPATH += \
     /usr/include/bullet \
     /usr/include/irrlicht \

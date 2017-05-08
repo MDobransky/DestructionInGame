@@ -1,4 +1,5 @@
 #include "CollisionResolver.h"
+#include <unordered_map>
 using namespace irr;
 using namespace core;
 using namespace scene;
@@ -41,7 +42,7 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
     {
         //nothing
     }
-    else if(material == &MMaterial::Shot && impulse > 100)
+    else if(material == &MMaterial::Shot && impulse > 50)
     {
         m_btWorld->removeCollisionObject(obj->getRigid());
         obj->removeNode();
@@ -49,9 +50,9 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
     }
     else if(material != &MMaterial::Ship)
     {
-        if(impulse > 100) //get material property
+        if(impulse > 50) //get material property
         {
-            generateVoro(obj,point,from,3);
+            generateVoro(obj,point,from,2);
         /*    scene::IParticleSystemSceneNode* ps =
             m_irrDevice->getSceneManager()->addParticleSystemSceneNode(false);
 
@@ -82,9 +83,9 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
             ps->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
             ps->doParticleSystem(1000);
             */
-            m_btWorld->removeCollisionObject(obj->getRigid());
-            obj->removeNode();
-            obj->setDeleted();
+            //m_btWorld->removeCollisionObject(obj->getRigid());
+            //obj->removeNode();
+            //obj->setDeleted();
         }
     }
 }
@@ -96,7 +97,7 @@ using namespace voro;
     container con(point.getX()-cube_size,point.getX()+cube_size,
                   point.getY()-cube_size,point.getY()+cube_size,
                   point.getZ()-cube_size,point.getZ()+cube_size,
-                  int(size),int(size),int(size),
+                  8,8,8,
                   false,false,false,
                   8);
 
@@ -108,7 +109,7 @@ using namespace voro;
     wall_custom body_wall(this,obj->getRigid(),from);
     con.add_wall(body_wall);
 
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 20; i++)
     {
         int x = rand()%int(2*cube_size)+point.getX()-cube_size;
         int y = rand()%int(2*cube_size)+point.getY()-cube_size;
@@ -117,17 +118,16 @@ using namespace voro;
         {
             con.put(i,x,y,z);
         }
-
     }
     c_loop_all loop(con);
     loop.start();
     voronoicell c;
     std::vector<double> vertices;
     std::vector<int> face_vertices;
-
     do
     {
-        if(/*(btVector3(loop.x(),loop.y(),loop.z()) - point).length() > size &&*/ con.compute_cell(c,loop))
+        btVector3 origin(loop.x(),loop.y(),loop.z());
+        if((origin - point).length() > 2*size/3 && con.compute_cell(c,loop))
         {
             c.vertices(vertices);
             c.face_vertices(face_vertices);
@@ -136,10 +136,9 @@ using namespace voro;
             buf = new SMeshBuffer();
             mesh->addMeshBuffer(buf);
             buf->drop();
-
             buf->Vertices.reallocate(vertices.size());
             buf->Vertices.set_used(vertices.size());
-            for(int i = 0; i < vertices.size(); i+=3)
+            for(int i = 0; i < static_cast<int>(vertices.size()); i+=3)
             {
                 buf->Vertices[i] = S3DVertex(float(vertices[i]),
                                              float(vertices[i+1]),
@@ -148,12 +147,13 @@ using namespace voro;
                                              loop.y(),
                                              loop.z(),
                                              video::SColor(100,100,100,100), 0, 1);
+
             }
             buf->Indices.reallocate(face_vertices.size()*10);
 
             int indices = 0;
             btTriangleMesh *  btMesh = new btTriangleMesh;
-            for(int i = 0; i < face_vertices.size();)
+            for(int i = 0; i < static_cast<int>(face_vertices.size());)
             {
                 for(int j = 1; j < face_vertices[i]-1; j++)
                 {
@@ -175,13 +175,12 @@ using namespace voro;
             btTransform Transform;
             Transform.setIdentity();
             Transform.setOrigin(btVector3(loop.x(),loop.y(),loop.z()));
-            btRigidBody *RigidBody = new btRigidBody(10, new btDefaultMotionState(Transform), new btBvhTriangleMeshShape(btMesh, false), btVector3());
+            btRigidBody *RigidBody = new btRigidBody(0, new btDefaultMotionState(Transform), new btBvhTriangleMeshShape(btMesh, false), btVector3());
             m_btWorld->addRigidBody(RigidBody);
 
             buf->Indices.set_used(indices);
             buf->recalculateBoundingBox();
 
-            //m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh,vector3df(1,1,1));
             IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
 
             Node->setPosition(vector3df(loop.x(),loop.y(),loop.z()));

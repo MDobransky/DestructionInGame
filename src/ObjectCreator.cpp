@@ -1,5 +1,7 @@
 #include "ObjectCreator.h"
 #include "Material.h"
+#include "MeshManipulators.h"
+
 
 #include <iostream>
 #include <cmath>
@@ -208,7 +210,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
     // Create the shape
-    btCollisionShape *Shape = MObjectCreator::convertMesh(Node);
+    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
     Shape->setMargin( 0.05f );
 
     // Add mass
@@ -357,80 +359,6 @@ gg::MObject* gg::MObjectCreator::createSolidGround(std::vector<std::string>&& it
     return obj;
 }
 
-btBvhTriangleMeshShape* gg::MObjectCreator::convertMesh(IMeshSceneNode * node)
-{
-    btTriangleMesh* btMesh = new btTriangleMesh();
-
-    for (irr::u32 j = 0; j < node->getMesh()->getMeshBufferCount(); j++)
-    {
-        IMeshBuffer* meshBuffer = node->getMesh()->getMeshBuffer(j);
-        S3DVertex* vertices = (S3DVertex*)meshBuffer->getVertices();
-        u16* indices = meshBuffer->getIndices();
-
-        for (u32 i = 0; i < meshBuffer->getIndexCount(); i += 3)
-        {
-            vector3df point1 = vertices[indices[i]].Pos;
-            vector3df point2 = vertices[indices[i + 1]].Pos;
-            vector3df point3 = vertices[indices[i + 2]].Pos;
-            btMesh->addTriangle(btVector3(point1.X, point1.Y, point1.Z),
-                                btVector3(point2.X, point2.Y, point2.Z),
-                                btVector3(point3.X, point3.Y, point3.Z));
-        }
-    }
-    return new btBvhTriangleMeshShape( btMesh, true );
-}
-
-btConvexHullShape* gg::MObjectCreator::convertMeshToHull(IMeshSceneNode * node)
-{
-    btConvexHullShape* hull= new btConvexHullShape();
-    for (irr::u32 j = 0; j < node->getMesh()->getMeshBufferCount(); j++)
-    {
-        IMeshBuffer* meshBuffer = node->getMesh()->getMeshBuffer(j);
-        S3DVertex* vertices = (S3DVertex*)meshBuffer->getVertices();
-        for(irr::u32 i = 0; i < meshBuffer->getVertexCount(); i++)
-        {
-            vector3df vertex = vertices[i].Pos;
-            hull->addPoint(btVector3(vertex.X, vertex.Y, vertex.Z));
-        }
-    }
-    return hull;
-}
-
-std::vector<btVector3> gg::MObjectCreator::getVertices(IMeshSceneNode* Node)
-{
-    std::vector<btVector3> btvertices;
-    for (irr::u32 i = 0; i < Node->getMesh()->getMeshBufferCount(); i++)
-    {
-        IMeshBuffer* meshBuffer = Node->getMesh()->getMeshBuffer(i);
-        S3DVertex* vertices = (S3DVertex*)meshBuffer->getVertices();
-        u16* indices = meshBuffer->getIndices();
-
-        for (u32 i = 0; i < meshBuffer->getIndexCount(); i += 3)
-        {
-            vector3df triangle1 = vertices[indices[i]].Pos;
-            vector3df triangle2 = vertices[indices[i + 1]].Pos;
-            vector3df triangle3 = vertices[indices[i + 2]].Pos;
-            btvertices.emplace_back(triangle1.X, triangle1.Y, triangle1.Z);
-            btvertices.emplace_back(triangle2.X, triangle2.Y, triangle2.Z);
-            btvertices.emplace_back(triangle3.X, triangle3.Y, triangle3.Z);
-        }
-    }
-    return std::move(btvertices);
-}
-
-std::vector<btVector3> gg::MObjectCreator::getVertices(btConvexHullShape* hull)
-{
-    btVector3* points = hull->getUnscaledPoints();
-    size_t n = hull->getNumPoints();
-    std::vector<btVector3> vertices;
-
-    for(size_t i = 0; i < n; i++)
-    {
-        vertices.push_back(*points);
-        points++;
-    }
-    return std::move(vertices);
-}
 
 
 

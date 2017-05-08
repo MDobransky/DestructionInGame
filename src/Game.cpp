@@ -4,7 +4,6 @@
 #include <string>
 #include <algorithm>
 
-
 using namespace irr;
 using namespace core;
 using namespace scene;

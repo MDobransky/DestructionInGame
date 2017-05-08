@@ -6,7 +6,7 @@ INC=-I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/LinearM
 SRCDIR=src/
 BUILDDIR=build/
 LFLAGS= -L/usr/lib
-LIBS= -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath -lvoro++
+LIBS= -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath -lvoro++ -Lcork/lib -lcork
 
 HEADERS= $(notdir $(wildcard $(SRCDIR)*.h))
 OBJS= $(addprefix $(BUILDDIR), $(subst .cpp,.o,$(notdir $(wildcard $(SRCDIR)*.cpp))))
