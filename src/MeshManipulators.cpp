@@ -1,6 +1,9 @@
 #include "MeshManipulators.h"
-#include "../cork/include/cork.h"
-#include <iostream>
+#include <CGAL/number_utils.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
+#include <CGAL/Polyhedron_items_with_id_3.h>
+#include <CGAL/Inverse_index.h>
+#include <CGAL/Polygon_mesh_processing/self_intersections.h>
 
 using namespace irr;
 using namespace core;
@@ -8,79 +11,53 @@ using namespace scene;
 using namespace video;
 using namespace io;
 using namespace gui;
-
+using namespace CGAL;
 
 namespace
 {
-    CorkTriMesh convertMeshToCork(irr::scene::IMesh* from, irr::core::vector3df position = irr::core::vector3df(0,0,0))
+    irr::scene::IMesh* convertPolyToMesh(Polyhedron_3<Exact_predicates_exact_constructions_kernel> &poly)
     {
-        uint n_indices = 0, n_vertices = 0;
-        for (irr::u32 j = 0; j < from->getMeshBufferCount(); j++)
-        {
-            IMeshBuffer* meshBuffer = from->getMeshBuffer(j);
-            n_indices += meshBuffer->getIndexCount();
-            n_vertices += meshBuffer->getVertexCount()*3;
-        }
-        uint* indices = new uint[n_indices];
-        float* vertices = new float[n_vertices];
-        int ind = 0, v = 0;
+        typedef Polyhedron_3<Exact_predicates_exact_constructions_kernel> Polyhedron;
+        Polygon_mesh_processing::triangulate_faces(poly);
 
-        int used_vertices = 0;
-        for (irr::u32 j = 0; j < from->getMeshBufferCount(); j++)
-        {
-            IMeshBuffer* meshBuffer = from->getMeshBuffer(j);
-            S3DVertex* IVertices = (S3DVertex*)meshBuffer->getVertices();
-            u16* IIndices = meshBuffer->getIndices();
-            for (u32 i = 0; i < meshBuffer->getIndexCount(); i++)
-            {
-                indices[ind] = IIndices[i]+used_vertices;
-                ind++;
-            }
-            for(irr::u32 i = 0; i < meshBuffer->getVertexCount(); i++)
-            {
-                vector3df vertex = IVertices[i].Pos;
-                vertices[v] = vertex.X + position.X;
-                vertices[v+1] = vertex.Y + position.Y;
-                vertices[v+2] = vertex.Z + position.Z;
-                v += 3;
-            }
-            used_vertices = v;
-        }
-
-        CorkTriMesh mesh = {n_indices/3, n_vertices/3, indices, vertices};
-        return mesh;
-    }
-
-    irr::scene::IMesh* convertMeshFromCork(CorkTriMesh* cork)
-    {
         irr::scene::SMesh* mesh = new SMesh();
         irr::scene::SMeshBuffer *buf = 0;
         buf = new SMeshBuffer();
         mesh->addMeshBuffer(buf);
         buf->drop();
-        buf->Vertices.reallocate(cork->n_vertices);
-        buf->Vertices.set_used(cork->n_vertices);
-        buf->Indices.reallocate(cork->n_triangles*3);
-        buf->Indices.set_used(cork->n_triangles*3);
-        for(int i = 0; i < cork->n_vertices; i++)
+        buf->Vertices.reallocate(poly.size_of_vertices());
+        buf->Vertices.set_used(poly.size_of_vertices());
+        buf->Indices.reallocate(poly.size_of_facets()*3);
+        buf->Indices.set_used(poly.size_of_facets()*3);
+        int i = 0;
+        for(auto p = poly.points_begin(); p != poly.points_end(); p++)
         {
-            buf->Vertices[i] = S3DVertex(cork->vertices[i*3],
-                                         cork->vertices[i*3+1],
-                                         cork->vertices[i*3+2],
-                                         cork->vertices[i*3],
-                                         cork->vertices[i*3+1],
-                                         cork->vertices[i*3],
-                                         video::SColor(100,100,100,100), 0, 1);
-
+            buf->Vertices[i] = S3DVertex(CGAL::to_double(p->x()),
+                                         CGAL::to_double(p->y()),
+                                         CGAL::to_double(p->z()),
+                                         CGAL::to_double(p->x()),
+                                         CGAL::to_double(p->y()),
+                                         CGAL::to_double(p->z()),
+                                         video::SColor(255,rand()%256,rand()%256,rand()%256), 0, 0);
+            i++;
         }
-        for(int i = 0; i < cork->n_triangles*3; i++)
+        typedef Polyhedron::Vertex_const_iterator VCI;
+        typedef CGAL::Inverse_index<VCI> Index;
+        Index index(poly.vertices_begin(), poly.vertices_end());
+        i = 0;
+        for (auto f = poly.facets_begin(); f != poly.facets_end(); f++)
         {
-            buf->Indices[i] = cork->triangles[i];
+            auto hfc = f->facet_begin();
+            CGAL_assertion(CGAL::circulator_size(hfc) == 3);
+            for (int j = 0; j < 3; j++) {
+                buf->Indices[i*3 + j] = index[VCI(hfc->vertex())];
+                hfc++;
+            }
+            i++;
         }
-        buf->recalculateBoundingBox();
-
         return mesh;
     }
+
 }
 
 
@@ -125,12 +102,33 @@ btConvexHullShape* gg::MeshManipulators::convertMeshToHull(IMeshSceneNode * node
 
 IMesh *gg::MeshManipulators::subtractMesh(IMesh *from, IMesh *what, vector3df position)
 {
-    CorkTriMesh Cork_from = convertMeshToCork(from);
-    CorkTriMesh Cork_what = convertMeshToCork(what, position);
-    CorkTriMesh* Cork_result = new CorkTriMesh;
-    computeDifference(Cork_from, Cork_what, Cork_result);
-    IMesh* res = convertMeshFromCork(Cork_result);
-    freeCorkTriMesh(Cork_result);
+    typedef CGAL::Exact_predicates_exact_constructions_kernel     Kernel;
+    typedef CGAL::Polyhedron_3<Kernel>  Polyhedron;
+    typedef Polyhedron::HalfedgeDS             HalfedgeDS;
+    typedef CGAL::Nef_polyhedron_3<Kernel>     Nef_polyhedron;
 
-return res;
+    Polyhedron poly_from;
+    PolyhedronBuilder<HalfedgeDS> mesh_from(from);
+    poly_from.delegate(mesh_from);
+
+    Polyhedron poly_what;
+    PolyhedronBuilder<HalfedgeDS> mesh_what(what, position);
+    poly_what.delegate(mesh_what);
+
+    if(Polygon_mesh_processing::does_self_intersect(poly_from)) std::cout << "1\n";
+    //if(poly_what.is_closed()) std::cout << "2\n";
+
+    //if(poly_from.is_closed() && poly_what.is_closed())
+    {
+        //Nef_polyhedron N1(poly_from);
+        //Nef_polyhedron N2(poly_what);
+        //Nef_polyhedron N3(N1-N2);
+        //Polyhedron res;
+        //N2.convert_to_polyhedron(res);
+        return convertPolyToMesh(poly_from);
+    }
+   // else return from;
+
+
+return from;
 }

@@ -7,7 +7,7 @@ Shoot: Space
 Pause: P
 Unpause: Space
 
-dependencies: libbullet-dev libirrlicht-dev voro++-dev
+dependencies: libbullet-dev libirrlicht-dev voro++-dev libcgal-dev
 
 input meshes for destructible bodies: .ply with no duplicate faces
  

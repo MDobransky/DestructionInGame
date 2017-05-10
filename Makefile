@@ -5,12 +5,12 @@ INC=-I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/LinearM
 SRCDIR=src/
 BUILDDIR=build/
 LFLAGS= -L/usr/lib
-LIBS= -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath -lvoro++ -Lcork/lib -lcork -lgmp
+LIBS= -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision \
+    -lLinearMath -lvoro++ -lgmp -lCGAL -lCGAL_Core -lmpfr
 
 HEADERS= $(notdir $(wildcard $(SRCDIR)*.h))
 OBJS= $(addprefix $(BUILDDIR), $(subst .cpp,.o,$(notdir $(wildcard $(SRCDIR)*.cpp))))
 PROG= $(BUILDDIR)game
-CORK= cork/lib/libcork.a
 VPATH=src/
 
 all: $(PROG)
@@ -18,15 +18,12 @@ all: $(PROG)
 $(BUILDDIR)%.o: %.cpp $(SRCDIR)$(HEADERS) | $(BUILDDIR)
 	$(CXX) $(CXXFLAGS) $(INC) $< -c -o $@
 	
-$(PROG):  $(OBJS) $(CORK)| $(BUILDDIR)
+$(PROG):  $(OBJS) | $(BUILDDIR)
 	$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $(PROG) 
 
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
 
-$(CORK):
-	make -j4 -C cork
-
 clean:
 	rm -f $(OBJS) $(PROG)
-	make -C cork clean
+

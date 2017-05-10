@@ -128,8 +128,9 @@ using namespace voro;
     std::vector<int> face_vertices;
     //do
     {
-        if(con.compute_cell(c,loop) && (btVector3(loop.x(),loop.y(),loop.z()) - point).length() > 2*size/3)
+        if(con.compute_cell(c,loop) && (btVector3(loop.x(),loop.y(),loop.z()) - point).length() > size/3)
         {
+            //c.init(-2,2,-2,2,-2,2);
             c.vertices(vertices);
             c.face_vertices(face_vertices);
             SMesh* mesh = new SMesh();
@@ -165,10 +166,9 @@ using namespace voro;
                     btMesh->addTriangle(btVector3(vertices[a],vertices[a+1],vertices[a+2]),
                                         btVector3(vertices[b],vertices[b+1],vertices[b+2]),
                                         btVector3(vertices[c],vertices[c+1],vertices[c+2]));
-                    buf->Indices[indices+2] = c;
-                    buf->Indices[indices+1] = b;
                     buf->Indices[indices] = a;
-
+                    buf->Indices[indices+1] = c;
+                    buf->Indices[indices+2] = b;
                     indices += 3;
                 }
                 i += face_vertices[i]+1;
@@ -177,24 +177,35 @@ using namespace voro;
             Transform.setIdentity();
             Transform.setOrigin(btVector3(loop.x(),loop.y(),loop.z()));
             btRigidBody *RigidBody = new btRigidBody(0, new btDefaultMotionState(Transform), new btBvhTriangleMeshShape(btMesh, false), btVector3());
-            //m_btWorld->addRigidBody(RigidBody);
+ //           m_btWorld->addRigidBody(RigidBody);
 
             buf->Indices.set_used(indices);
             buf->recalculateBoundingBox();
 
             IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
             Node->setPosition(vector3df(loop.x(),loop.y(),loop.z()));
-            //MObject* fragment = new MObject(RigidBody, Node, &MMaterial::Magic);
+            MObject* fragment = new MObject(RigidBody, Node, &MMaterial::Magic);
+
             Node->setVisible(0);
 
-            //RigidBody->setUserPointer((void *)(fragment));
+            RigidBody->setUserPointer((void *)(fragment));
             //m_objects->push_back(std::unique_ptr<gg::MObject>(fragment));
 
-            IMesh* new_mesh = MeshManipulators::subtractMesh(static_cast<IMeshSceneNode*>(obj->getNode())->getMesh(),mesh, Node->getPosition() - obj->getNode()->getPosition());
-            Node = m_irrDevice->getSceneManager()->addMeshSceneNode(new_mesh);
-            Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-            Node->setPosition(vector3df(-20,-10,-40));
-            Node->setMaterialTexture(0,m_irrDevice->getVideoDriver()->getTexture("media/rubble.jpg"));
+            try
+            {
+                IMesh* new_mesh = MeshManipulators::subtractMesh(static_cast<IMeshSceneNode*>(obj->getNode())->getMesh(), mesh, Node->getPosition() - obj->getNode()->getPosition());
+                Node = static_cast<IMeshSceneNode*>(obj->getNode());
+                Node->setMesh(new_mesh);
+                Node->setMaterialType(EMT_SOLID);
+                Node->setMaterialFlag(EMF_LIGHTING, 0);
+                Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+                //Node->setPosition(vector3df(-20,-10,-40));
+                //Node->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
+            }
+            catch(...)
+            {
+
+            }
         }
     } //while (loop.inc());
 }
