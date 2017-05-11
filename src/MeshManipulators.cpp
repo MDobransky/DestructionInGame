@@ -1,9 +1,8 @@
 #include "MeshManipulators.h"
 #include <CGAL/number_utils.h>
 #include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
-#include <CGAL/Polyhedron_items_with_id_3.h>
 #include <CGAL/Inverse_index.h>
-#include <CGAL/Polygon_mesh_processing/self_intersections.h>
+#include <map>
 
 using namespace irr;
 using namespace core;
@@ -102,33 +101,78 @@ btConvexHullShape* gg::MeshManipulators::convertMeshToHull(IMeshSceneNode * node
 
 IMesh *gg::MeshManipulators::subtractMesh(IMesh *from, IMesh *what, vector3df position)
 {
-    typedef CGAL::Exact_predicates_exact_constructions_kernel     Kernel;
-    typedef CGAL::Polyhedron_3<Kernel>  Polyhedron;
-    typedef Polyhedron::HalfedgeDS             HalfedgeDS;
-    typedef CGAL::Nef_polyhedron_3<Kernel>     Nef_polyhedron;
-
     Polyhedron poly_from;
-    PolyhedronBuilder<HalfedgeDS> mesh_from(from);
+    PolyhedronBuilder mesh_from(from);
     poly_from.delegate(mesh_from);
 
     Polyhedron poly_what;
-    PolyhedronBuilder<HalfedgeDS> mesh_what(what, position);
+    PolyhedronBuilder mesh_what(what, position);
     poly_what.delegate(mesh_what);
 
-    if(Polygon_mesh_processing::does_self_intersect(poly_from)) std::cout << "1\n";
-    //if(poly_what.is_closed()) std::cout << "2\n";
-
-    //if(poly_from.is_closed() && poly_what.is_closed())
+    if(poly_from.is_closed() && poly_what.is_closed())
     {
-        //Nef_polyhedron N1(poly_from);
-        //Nef_polyhedron N2(poly_what);
-        //Nef_polyhedron N3(N1-N2);
-        //Polyhedron res;
-        //N2.convert_to_polyhedron(res);
-        return convertPolyToMesh(poly_from);
+        Nef_polyhedron N1(poly_from);
+        Nef_polyhedron N2(poly_what);
+        Nef_polyhedron N3(N1-N2);
+        Polyhedron res;
+        N3.convert_to_polyhedron(res);
+        return convertPolyToMesh(res);
     }
-   // else return from;
+    return from;
+}
 
+void gg::MeshManipulators::PolyhedronBuilder::operator()(gg::MeshManipulators::HalfedgeDS &hds)
+{
+    CGAL::Polyhedron_incremental_builder_3<HalfedgeDS> B(hds, true);
+    typedef typename HalfedgeDS::Vertex Vertex;
+    typedef typename Vertex::Point Point;
+    std::map<irr::core::vector3df,int> vertex_map;
 
-return from;
+    uint n_faces = 0, n_vertices = 0;
+    for (irr::u32 j = 0; j < m_mesh->getMeshBufferCount(); j++)
+    {
+        IMeshBuffer* meshBuffer = m_mesh->getMeshBuffer(j);
+        n_faces += meshBuffer->getIndexCount()/3;
+        n_vertices += meshBuffer->getVertexCount();
+    }
+
+    B.begin_surface(n_vertices, n_faces);
+    int v = 0;
+    for (irr::u32 j = 0; j < m_mesh->getMeshBufferCount(); j++)
+    {
+        IMeshBuffer* meshBuffer = m_mesh->getMeshBuffer(j);
+        S3DVertex* IVertices = (S3DVertex*)meshBuffer->getVertices();
+        u16* IIndices = meshBuffer->getIndices();
+
+        for (u32 i = 0; i < meshBuffer->getIndexCount(); i+=3)
+        {
+            vector3df vertexA = IVertices[IIndices[i]].Pos;
+            if(vertex_map.find(vertexA) == vertex_map.end())
+            {
+                B.add_vertex( Point( vertexA.X + m_position.X, vertexA.Y + m_position.Y, vertexA.Z + m_position.Z));
+                vertex_map[vertexA] = v;
+                v++;
+            }
+            vector3df vertexB = IVertices[IIndices[i+1]].Pos;
+            if(vertex_map.find(vertexB) == vertex_map.end())
+            {
+                B.add_vertex( Point( vertexB.X + m_position.X, vertexB.Y + m_position.Y, vertexB.Z + m_position.Z));
+                vertex_map[vertexB] = v;
+                v++;
+            }
+            vector3df vertexC = IVertices[IIndices[i+2]].Pos;
+            if(vertex_map.find(vertexC) == vertex_map.end())
+            {
+                B.add_vertex( Point( vertexC.X + m_position.X, vertexC.Y + m_position.Y, vertexC.Z + m_position.Z));
+                vertex_map[vertexC] = v;
+                v++;
+            }
+            B.begin_facet();
+            B.add_vertex_to_facet(vertex_map[vertexA]);
+            B.add_vertex_to_facet(vertex_map[vertexB]);
+            B.add_vertex_to_facet(vertex_map[vertexC]);
+            B.end_facet();
+        }
+    }
+    B.end_surface();
 }

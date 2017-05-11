@@ -126,21 +126,20 @@ using namespace voro;
     voronoicell c;
     std::vector<double> vertices;
     std::vector<int> face_vertices;
-    //do
+    do
     {
         if(con.compute_cell(c,loop) && (btVector3(loop.x(),loop.y(),loop.z()) - point).length() > size/3)
         {
-            //c.init(-2,2,-2,2,-2,2);
             c.vertices(vertices);
             c.face_vertices(face_vertices);
             SMesh* mesh = new SMesh();
             SMeshBuffer *buf = 0;
             buf = new SMeshBuffer();
             mesh->addMeshBuffer(buf);
-            buf->drop();
+           // buf->drop();
             buf->Vertices.reallocate(vertices.size());
             buf->Vertices.set_used(vertices.size());
-            for(int i = 0; i < static_cast<int>(vertices.size()); i+=3)
+            for(int i = 0; i < static_cast<int>(vertices.size()); i++)
             {
                 buf->Vertices[i] = S3DVertex(float(vertices[i]),
                                              float(vertices[i+1]),
@@ -149,7 +148,6 @@ using namespace voro;
                                              loop.y(),
                                              loop.z(),
                                              video::SColor(100,100,100,100), 0, 1);
-
             }
             buf->Indices.reallocate(face_vertices.size()*10);
 
@@ -204,10 +202,10 @@ using namespace voro;
             }
             catch(...)
             {
-
+                std::cout << "FAILED\n";
             }
         }
-    } //while (loop.inc());
+    } while (loop.inc());
 }
 
 bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3 point,btVector3 from)
