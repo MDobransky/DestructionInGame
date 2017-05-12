@@ -4,11 +4,13 @@
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
 #include <btBulletDynamicsCommon.h>
-
+#define CGAL_DISABLE_ROUNDING_MATH_CHECK
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/Polyhedron_incremental_builder_3.h>
 #include <CGAL/Nef_polyhedron_3.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+
+#include <voro++/voro++.hh>
 
 using namespace irr;
 using namespace core;
@@ -28,6 +30,7 @@ namespace gg
 
     public:
         static btBvhTriangleMeshShape* convertMesh(irr::scene::IMeshSceneNode*);
+        static irr::scene::IMesh* createMesh(voro::voronoicell& cell);
         static irr::scene::IMesh* subtractMesh(irr::scene::IMesh* from, irr::scene::IMesh* what, irr::core::vector3df position);
 
     private:

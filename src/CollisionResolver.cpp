@@ -58,8 +58,7 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
             //take from stack, use voro++ to create convex shape
             //subtract shape from mesh and replace it
             //cut convex shape to bits and put them to world
-            //
-            generateVoro(obj,point,from,2);
+            generateVoro(obj,point,from,4);
         /*    scene::IParticleSystemSceneNode* ps =
             m_irrDevice->getSceneManager()->addParticleSystemSceneNode(false);
 
@@ -107,16 +106,16 @@ using namespace voro;
                   8,8,8,
                   false,false,false,
                   8);
-
+/*
     wall_cylinder cyl(point.getX(),point.getY(),point.getZ(),
                       from.getX(),from.getY(),from.getZ(),
                       size);
-    con.add_wall(cyl);
-
+    con.add_wall(cyl);*/
+/*
     wall_custom body_wall(this,obj->getRigid(),from);
     con.add_wall(body_wall);
-
-    for(int i = 0; i < 20; i++)
+*/
+    /*for(int i = 1; i < 10; i++)
     {
         int x = rand()%int(2*cube_size)+point.getX()-cube_size;
         int y = rand()%int(2*cube_size)+point.getY()-cube_size;
@@ -124,88 +123,59 @@ using namespace voro;
         if(con.point_inside(x,y,z))
         {
             con.put(i,x,y,z);
+            break;
         }
-    }
+    }*/
+    con.put(0,point.getX(),point.getY(),point.getZ());
     c_loop_all loop(con);
     loop.start();
     voronoicell c;
-    std::vector<double> vertices;
-    std::vector<int> face_vertices;
     //do
     {
         //if(con.compute_cell(c,loop) && (btVector3(loop.x(),loop.y(),loop.z()) - point).length() > size/3)
         {
-            c.init_base(-2,2,-2,2,-2,2);
-            c.vertices(vertices);
-            c.face_vertices(face_vertices);
-            SMesh* mesh = new SMesh();
-            SMeshBuffer *buf = 0;
-            buf = new SMeshBuffer();
-            mesh->addMeshBuffer(buf);
-            buf->drop();
-            buf->Vertices.reallocate(vertices.size());
-            buf->Vertices.set_used(vertices.size());
-            for(int i = 0; i < static_cast<int>(vertices.size()); i++)
-            {
-                buf->Vertices[i] = S3DVertex(float(vertices[i]),
-                                             float(vertices[i+1]),
-                                             float(vertices[i+2]),
-                                             loop.x(),
-                                             loop.y(),
-                                             loop.z(),
-                                             video::SColor(100,100,100,100), 0, 1);
-            }
-            buf->Indices.reallocate(face_vertices.size()*10);
-
-            int indices = 0;
-            btTriangleMesh *  btMesh = new btTriangleMesh;
-            for(int i = 0; i < static_cast<int>(face_vertices.size());)
-            {
-                for(int j = 1; j < face_vertices[i]-1; j++)
-                {
-                    int a,b,c;
-                    a = face_vertices[i+1]*3;
-                    b = face_vertices[i+j+1]*3;
-                    c = face_vertices[i+j+2]*3;
-                    btMesh->addTriangle(btVector3(vertices[a],vertices[a+1],vertices[a+2]),
-                                        btVector3(vertices[b],vertices[b+1],vertices[b+2]),
-                                        btVector3(vertices[c],vertices[c+1],vertices[c+2]));
-                    buf->Indices[indices] = a;
-                    buf->Indices[indices+1] = c;
-                    buf->Indices[indices+2] = b;
-                    indices += 3;
-                }
-                i += face_vertices[i]+1;
-            }
-            btTransform Transform;
+            voronoicell c;
+            con.compute_cell(c,loop);
+            //c.init_base(-2,2,-2,2,-2,2);
+            IMesh* mesh = gg::MeshManipulators::createMesh(c);
+           /* btTransform Transform;
             Transform.setIdentity();
             Transform.setOrigin(btVector3(loop.x(),loop.y(),loop.z()));
             btRigidBody *RigidBody = new btRigidBody(0, new btDefaultMotionState(Transform), new btBvhTriangleMeshShape(btMesh, false), btVector3());
-            m_btWorld->addRigidBody(RigidBody);
+            //m_btWorld->addRigidBody(RigidBody);
+*/
 
-            buf->Indices.set_used(indices);
-            buf->recalculateBoundingBox();
 
             IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
             Node->setPosition(vector3df(loop.x(),loop.y(),loop.z()));
-            MObject* fragment = new MObject(RigidBody, Node, &MMaterial::Magic);
-
-            RigidBody->setUserPointer((void *)(fragment));
-            m_objects->push_back(std::unique_ptr<gg::MObject>(fragment));
+           // MObject* fragment = new MObject(RigidBody, Node, &MMaterial::Magic);
+    Node->setVisible(0);
+            //RigidBody->setUserPointer((void *)(fragment));
+            //m_objects->push_back(std::unique_ptr<gg::MObject>(fragment));
 
             try
             {
                 IMesh* new_mesh = MeshManipulators::subtractMesh(static_cast<IMeshSceneNode*>(obj->getNode())->getMesh(), mesh, Node->getPosition() - obj->getNode()->getPosition());
-                Node = static_cast<IMeshSceneNode*>(obj->getNode());
-                Node->setMesh(new_mesh);
-                Node->setMaterialType(EMT_SOLID);
-                Node->setMaterialFlag(EMF_LIGHTING, 0);
-                Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-                btRigidBody* body = obj->getRigid();
-                delete body->getCollisionShape();
-                btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
-                Shape->setMargin( 0.05f );
-                body->setCollisionShape(Shape);
+
+                if(new_mesh)
+                {
+                    Node = static_cast<IMeshSceneNode*>(obj->getNode());
+                    Node->setMesh(new_mesh);
+                    Node->setMaterialType(EMT_SOLID);
+                    Node->setMaterialFlag(EMF_LIGHTING, 0);
+                    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+                    btRigidBody* body = obj->getRigid();
+                    delete body->getCollisionShape();
+                    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+                    Shape->setMargin( 0.05f );
+                    body->setCollisionShape(Shape);
+                }
+                else
+                {
+                    m_btWorld->removeCollisionObject(obj->getRigid());
+                    obj->removeNode();
+                    obj->setDeleted();
+                }
             }
             catch(...)
             {
@@ -232,13 +202,6 @@ bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3 point,btVecto
             in++;
         }
     }
-   /* if(in%2)
-    {
-        ISceneNode* node = m_irrDevice->getSceneManager()->addSphereSceneNode();
-        btVector3 spot = body->getWorldTransform() * point;
-        node->setPosition(vector3df(spot.getX(),spot.getY(),spot.getZ()));
-        std::cout << "yes\n";
-    }*/
     return in%2;
 }
 

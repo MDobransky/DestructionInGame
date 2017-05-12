@@ -17,7 +17,12 @@ namespace
     IMesh* convertPolyToMesh(CGAL::Polyhedron_3<CGAL::Exact_predicates_exact_constructions_kernel> &poly)
     {
         typedef Polyhedron_3<Exact_predicates_exact_constructions_kernel> Polyhedron;
-        Polygon_mesh_processing::triangulate_faces(poly);
+        Polygon_mesh_processing::triangulate_faces(poly,CGAL::Polygon_mesh_processing::parameters::use_delaunay_triangulation(true));
+
+        if(poly.size_of_vertices() == 0)
+        {
+            return NULL;
+        }
 
         irr::scene::SMesh* mesh = new SMesh();
         irr::scene::SMeshBuffer *buf = 0;
@@ -79,6 +84,51 @@ btBvhTriangleMeshShape* gg::MeshManipulators::convertMesh(IMeshSceneNode * node)
         }
     }
     return new btBvhTriangleMeshShape( btMesh, true );
+}
+
+IMesh*gg::MeshManipulators::createMesh(voro::voronoicell& cell)
+{
+    std::vector<double> vertices;
+    std::vector<int> face_vertices;
+    cell.vertices(vertices);
+    cell.face_vertices(face_vertices);
+
+    SMesh* mesh = new SMesh();
+    SMeshBuffer *buf = 0;
+    buf = new SMeshBuffer();
+    mesh->addMeshBuffer(buf);
+    buf->drop();
+    buf->Vertices.reallocate(vertices.size());
+    buf->Vertices.set_used(vertices.size());
+    for(int i = 0; i < static_cast<int>(vertices.size()); i++)
+    {
+        buf->Vertices[i] = S3DVertex(float(vertices[i]),
+                                     float(vertices[i+1]),
+                                     float(vertices[i+2]),
+                                     float(vertices[i]),
+                                     float(vertices[i+1]),
+                                     float(vertices[i+2]),
+                                     video::SColor(100,100,100,100), 0, 1);
+    }
+    buf->Indices.reallocate(face_vertices.size()*10);
+
+    int indices = 0;
+    for(int i = 0; i < static_cast<int>(face_vertices.size());)
+    {
+        for(int j = 1; j < face_vertices[i]-1; j++)
+        {
+            buf->Indices[indices] = face_vertices[i+1]*3;
+            buf->Indices[indices+1] = face_vertices[i+j+1]*3;
+            buf->Indices[indices+2] = face_vertices[i+j+2]*3;
+            indices += 3;
+        }
+        i += face_vertices[i]+1;
+    }
+
+    buf->Indices.set_used(indices);
+    buf->recalculateBoundingBox();
+
+    return mesh;
 }
 
 IMesh* gg::MeshManipulators::subtractMesh(IMesh *from, IMesh *what, vector3df position)
@@ -158,3 +208,4 @@ void gg::MeshManipulators::PolyhedronBuilder::operator()(gg::MeshManipulators::H
     }
     B.end_surface();
 }
+

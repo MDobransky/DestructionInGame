@@ -40,7 +40,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     const btScalar Mass = numbers[9];
 
 
-    IMesh* mesh_orig = m_irrDevice->getSceneManager()->getMesh((m_media + items[0]).c_str());
+    IMesh* mesh_orig = m_irrDevice->getSceneManager()->getMesh((m_media + input).c_str());
     IMesh* mesh = m_irrDevice->getSceneManager()->getMeshManipulator()->createMeshUniquePrimitives(mesh_orig);
 
     IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
@@ -50,7 +50,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     Node->setMaterialFlag(EMF_LIGHTING, 0);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
     if(items[1] != "")
-        Node->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture((m_media + items[1]).c_str()));
+        Node->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture((m_media + texture).c_str()));
 
     // Set the initial position of the object
     btTransform Transform;
