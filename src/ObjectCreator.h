@@ -14,18 +14,19 @@
 #include <LinearMath/btQuaternion.h>
 
 #include <string>
-#include <set>
+#include <vector>
 
 namespace gg {
 
 class MObjectCreator
 {
-
 public:
     MObjectCreator(irr::IrrlichtDevice*);
     MObject* createMeshRigidBody(std::vector<std::string>&&);
     MObject* createBoxedRigidBody(std::vector<std::string>&&);
     MObject* createSolidGround(std::vector<std::string>&&);
+    MObject* shoot(btVector3 position, btVector3 impulse);
+
 private:
     irr::IrrlichtDevice* m_irrDevice;
     const std::string m_media = "media/";

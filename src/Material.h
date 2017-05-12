@@ -7,11 +7,6 @@ namespace gg {
 
 class MMaterial
 {
-private:
-    double strength;
-    uint_fast32_t density; //kg/m^3
-    float fragment_size;
-
 public:
     double getStrength() const { return strength; }
     int getDensity() const { return density; }
@@ -47,6 +42,10 @@ public:
         }
     }
 
+private:
+    double strength;
+    uint_fast32_t density;
+    float fragment_size;
 };
 }
 #endif

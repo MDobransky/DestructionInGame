@@ -1,5 +1,3 @@
-//takes a file describing level, loads everything and returns irrDevice, Objects[] with stored edem elements
-
 #ifndef LOADER_H
 #define LOADER_H
 
@@ -20,13 +18,9 @@ namespace gg {
 
 class MLoader
 {
-
-
 public:
     MLoader(irr::IrrlichtDevice*);
-
-    //takes the file describing what to load and returns irrlicht device and rigidbody objects
-    std::tuple<std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr<btFixedConstraint>>> load(std::string);
+    std::vector<std::unique_ptr<gg::MObject>> load(std::string);
 
 private:
     const std::string m_media = "media/";
@@ -35,10 +29,7 @@ private:
 
     irr::IrrlichtDevice* m_irrDevice;
     std::vector<std::unique_ptr<gg::MObject>> m_objects;
-    std::vector<std::unique_ptr<btFixedConstraint>> m_constraints;
     std::unique_ptr<MObjectCreator> m_objectCreator;
-    int m_width, m_heigth;
-    bool m_fullscreen;
 };
 
 }

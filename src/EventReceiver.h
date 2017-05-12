@@ -1,7 +1,7 @@
 #ifndef EVENTRECEIVER_H
 #define EVENTRECEIVER_H
 
-#include "Game.h"
+#include <irrlicht.h>
 
 namespace gg {
 

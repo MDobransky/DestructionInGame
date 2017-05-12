@@ -16,14 +16,17 @@ VPATH=src/
 all: $(PROG)
 
 $(BUILDDIR)%.o: %.cpp $(SRCDIR)$(HEADERS) | $(BUILDDIR)
-	$(CXX) $(CXXFLAGS) $(INC) $< -c -o $@
+	@$(CXX) $(CXXFLAGS) $(INC) $< -c -o $@
+	$(info $@ created)
 	
 $(PROG):  $(OBJS) | $(BUILDDIR)
-	$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $(PROG) 
+	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $(PROG)
+	$(info $@ created)
 
 $(BUILDDIR):
-	mkdir -p $(BUILDDIR)
+	@mkdir -p $(BUILDDIR)
+	$(info $@ created)
 
 clean:
-	rm -f $(OBJS) $(PROG)
-
+	@rm -f $(OBJS) $(PROG)
+	$(info Project cleaned)

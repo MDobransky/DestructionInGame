@@ -16,19 +16,14 @@ namespace gg {
 
 class MObject
 {
-private:
-    std::unique_ptr<btRigidBody> m_rigidBody;
-    irr::scene::ISceneNode* m_irrSceneNode;
-    bool m_empty, m_deleted = false;
-    const MMaterial* m_material;
 public:
-    btRigidBody* getRigid() { return m_rigidBody.get(); }
-    irr::scene::ISceneNode* getNode() { return m_irrSceneNode; }
-    const MMaterial* getMaterial() { return m_material; }
-    bool isEmpty() { return m_empty; }
-    bool isDeleted() { return m_deleted; }
-    void setDeleted() { m_deleted = true; }
-    void removeNode()
+    inline btRigidBody* getRigid() { return m_rigidBody.get(); }
+    inline irr::scene::ISceneNode* getNode() { return m_irrSceneNode; }
+    inline const MMaterial* getMaterial() { return m_material; }
+    inline bool isEmpty() { return m_empty; }
+    inline bool isDeleted() { return m_deleted; }
+    inline void setDeleted() { m_deleted = true; }
+    inline void removeNode()
     {
         if(m_irrSceneNode)
         {
@@ -78,6 +73,12 @@ public:
     MObject (MObject&) = delete;
     MObject& operator= (MObject&&) = delete;
     MObject&  operator= (const MObject&) = delete;
+
+private:
+    std::unique_ptr<btRigidBody> m_rigidBody;
+    irr::scene::ISceneNode* m_irrSceneNode;
+    bool m_empty, m_deleted = false;
+    const MMaterial* m_material;
 };
 
 }

@@ -54,6 +54,11 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
     {
         if(impulse > 20) //get material property
         {
+            //push event to stack, generate dust to cover
+            //take from stack, use voro++ to create convex shape
+            //subtract shape from mesh and replace it
+            //cut convex shape to bits and put them to world
+            //
             generateVoro(obj,point,from,2);
         /*    scene::IParticleSystemSceneNode* ps =
             m_irrDevice->getSceneManager()->addParticleSystemSceneNode(false);
@@ -126,17 +131,18 @@ using namespace voro;
     voronoicell c;
     std::vector<double> vertices;
     std::vector<int> face_vertices;
-    do
+    //do
     {
-        if(con.compute_cell(c,loop) && (btVector3(loop.x(),loop.y(),loop.z()) - point).length() > size/3)
+        //if(con.compute_cell(c,loop) && (btVector3(loop.x(),loop.y(),loop.z()) - point).length() > size/3)
         {
+            c.init_base(-2,2,-2,2,-2,2);
             c.vertices(vertices);
             c.face_vertices(face_vertices);
             SMesh* mesh = new SMesh();
             SMeshBuffer *buf = 0;
             buf = new SMeshBuffer();
             mesh->addMeshBuffer(buf);
-           // buf->drop();
+            buf->drop();
             buf->Vertices.reallocate(vertices.size());
             buf->Vertices.set_used(vertices.size());
             for(int i = 0; i < static_cast<int>(vertices.size()); i++)
@@ -175,7 +181,7 @@ using namespace voro;
             Transform.setIdentity();
             Transform.setOrigin(btVector3(loop.x(),loop.y(),loop.z()));
             btRigidBody *RigidBody = new btRigidBody(0, new btDefaultMotionState(Transform), new btBvhTriangleMeshShape(btMesh, false), btVector3());
- //           m_btWorld->addRigidBody(RigidBody);
+            m_btWorld->addRigidBody(RigidBody);
 
             buf->Indices.set_used(indices);
             buf->recalculateBoundingBox();
@@ -184,10 +190,8 @@ using namespace voro;
             Node->setPosition(vector3df(loop.x(),loop.y(),loop.z()));
             MObject* fragment = new MObject(RigidBody, Node, &MMaterial::Magic);
 
-            Node->setVisible(0);
-
             RigidBody->setUserPointer((void *)(fragment));
-            //m_objects->push_back(std::unique_ptr<gg::MObject>(fragment));
+            m_objects->push_back(std::unique_ptr<gg::MObject>(fragment));
 
             try
             {
@@ -197,15 +201,18 @@ using namespace voro;
                 Node->setMaterialType(EMT_SOLID);
                 Node->setMaterialFlag(EMF_LIGHTING, 0);
                 Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-                //Node->setPosition(vector3df(-20,-10,-40));
-                //Node->setMaterialFlag(EMF_BACK_FACE_CULLING, false);
+                btRigidBody* body = obj->getRigid();
+                delete body->getCollisionShape();
+                btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+                Shape->setMargin( 0.05f );
+                body->setCollisionShape(Shape);
             }
             catch(...)
             {
                 std::cout << "FAILED\n";
             }
         }
-    } while (loop.inc());
+    } //while (loop.inc());
 }
 
 bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3 point,btVector3 from)

@@ -13,38 +13,57 @@ using namespace gui;
 
 gg::MGame::MGame()
 {
-}
-
-gg::MGame::~MGame()
-{
-}
-double rnd() {return double(rand())/RAND_MAX;}
-void gg::MGame::Run(bool debug, bool gravity)
-{
     m_events = new MEventReceiver();
     m_done = false;
-    m_irrDevice.reset(createDevice(video::EDT_OPENGL, dimension2d<u32>(1920,1080), 32, false, false, false, m_events));
-    m_loader = std::make_unique<MLoader>(m_irrDevice.get());
-    std::tie(m_objects, m_constraints) = m_loader->load("media/levels/1");
+    m_velocity = -10;
 
-    // Initialize irrlicht
+    m_irrDevice.reset(createDevice(video::EDT_OPENGL, dimension2d<u32>(1920,1080), 32, false, false, false, m_events));
     m_irrGUI = m_irrDevice->getGUIEnvironment();
     m_irrTimer = m_irrDevice->getTimer();
     m_irrScene = m_irrDevice->getSceneManager();
     m_irrDriver = m_irrDevice->getVideoDriver();
 
-    m_irrDevice->getCursorControl()->setVisible(0);
+    m_collisionConfiguration = new btDefaultCollisionConfiguration();
+    m_broadPhase = new btAxisSweep3(btVector3(-1000, -1000, -1000), btVector3(1000, 1000, 1000));
+    m_dispatcher = new btCollisionDispatcher(m_collisionConfiguration);
+    m_solver = new btSequentialImpulseConstraintSolver();
+    m_btWorld = new btDiscreteDynamicsWorld(m_dispatcher, m_broadPhase, m_solver, m_collisionConfiguration);
 
-    // Initialize bullet
-    btDefaultCollisionConfiguration *CollisionConfiguration = new btDefaultCollisionConfiguration();
-    btBroadphaseInterface *BroadPhase = new btAxisSweep3(btVector3(-1000, -1000, -1000), btVector3(1000, 1000, 1000));
-    btCollisionDispatcher *Dispatcher = new btCollisionDispatcher(CollisionConfiguration);
-    btSequentialImpulseConstraintSolver *Solver = new btSequentialImpulseConstraintSolver();
-    m_btWorld = new btDiscreteDynamicsWorld(Dispatcher, BroadPhase, Solver, CollisionConfiguration);
-
+    m_objectCreator.reset(new MObjectCreator(m_irrDevice.get()));
     m_resolver = std::make_unique<MCollisionResolver>(m_irrDevice.get(), m_btWorld, &m_objects);
+}
+
+gg::MGame::~MGame()
+{
+    delete m_dispatcher;
+    delete m_collisionConfiguration;
+    delete m_broadPhase;
+    delete m_solver;
+    delete m_btWorld;
+}
+
+void gg::MGame::run(bool debug, bool gravity)
+{
+    MLoader loader(m_irrDevice.get());
+    m_objects = loader.load("media/levels/1");
+    for(size_t i = 0; i < m_objects.size(); i++)
+    {
+        //ship
+        if(i == 1)
+        {
+            m_btShip = m_objects[i]->getRigid();
+            m_btShip->setActivationState(DISABLE_DEACTIVATION);
+            m_btShip->setLinearVelocity(m_btShip->getWorldTransform().getBasis() * (btVector3( 0.f, 0.0f, m_velocity )));
+            m_IShip = m_objects[i]->getNode();
+        }
+        m_btWorld->addRigidBody(m_objects[i]->getRigid());
+        m_objects[i]->getRigid()->setDamping(0.9f,0.9f);
+        m_objects[i]->getRigid()->activate();
+    }
+
+
     MDebugDraw debugDraw(m_irrDevice.get());
-       debugDraw.setDebugMode(
+    debugDraw.setDebugMode(
              btIDebugDraw::DBG_DrawWireframe |
              btIDebugDraw::DBG_DrawAabb |
              btIDebugDraw::DBG_DrawContactPoints |
@@ -53,44 +72,31 @@ void gg::MGame::Run(bool debug, bool gravity)
              btIDebugDraw::DBG_DrawConstraints //|
        );
        m_btWorld->setDebugDrawer(&debugDraw);
-
-
        irr::video::SMaterial debugMat;
        debugMat.Lighting = false;
-//apply parameters
     const bool debug_draw_bullet = debug;
-    if(!gravity)
-    {
-        m_btWorld->setGravity(btVector3(0,0,0));
-    }
-    else
-    {
-        m_btWorld->setGravity(btVector3(0,-256,0));
-    }
-    m_velocity = -10;
-    CreateStartScene();
 
-    IGUIStaticText* fpsTextElement = m_irrScene->getGUIEnvironment()->addStaticText(L"", rect<s32>(35, 35, 140, 50), false, false, 0);
-///////////////////////////////////////////
-    // Main loop
+    m_btWorld->setGravity(btVector3(0,gravity ? -256 : 0,0));
+    m_btShip->setGravity(btVector3(0,0,0));
+    createStartScene();
+
+    m_irrScene->getGUIEnvironment()->addStaticText(L"FPS:", rect<s32>(35, 35, 50, 50), false, false, 0);
+    IGUIStaticText* fpsTextElement = m_irrScene->getGUIEnvironment()->addStaticText(L"", rect<s32>(50, 35, 180, 50), false, false, 0);
+
     u32 TimeStamp = m_irrTimer->getTime(), DeltaTime = 0;
-    //u32 realStamp = m_irrTimer->getRealTime();
-    stringw str = L"FPS: ";
-    stringw fps;
-    while(!m_done) {
-        fps = str;
-        fps += m_irrDriver->getFPS();
-        fpsTextElement->setText(fps.c_str());
-        m_irrDevice->setWindowCaption(fps.c_str());
+///////////////////////////////////////////Main loop
+    while(!m_done)
+    {
+        fpsTextElement->setText(std::to_wstring(m_irrDriver->getFPS()).c_str());
 
         DeltaTime = m_irrTimer->getTime() - TimeStamp;
         TimeStamp = m_irrTimer->getTime();
-        ApplySettings();
+        applySettings();
         if(!m_paused)
         {
-            ApplyEvents();
+            applyEvents();
             m_btShip->setLinearVelocity(m_btShip->getWorldTransform().getBasis() * (btVector3( 0.f, 0.0f, m_velocity )));
-            UpdatePhysics(DeltaTime);
+            updatePhysics(DeltaTime);
         }
         //camera
         btVector3 newup = quatRotate(m_btShip->getOrientation(),btVector3(0,1,0));
@@ -114,43 +120,17 @@ void gg::MGame::Run(bool debug, bool gravity)
     }
 /////////////////////////////////////////////////////////////
     //ClearObjects();
-    delete m_btWorld;
-    delete Solver;
-    delete Dispatcher;
-    delete BroadPhase;
-    delete CollisionConfiguration;
+
 }
 
-void  gg::MGame::CreateStartScene()
+void  gg::MGame::createStartScene()
 {
+    m_irrDevice->getCursorControl()->setVisible(0);
+    m_irrDevice->setWindowCaption(L"Simulation of environment destruction");
+
     // Create the initial scene
     m_irrScene->addLightSceneNode(0, core::vector3df(0, 7000, 0), SColorf(4, 4, 4, 1),10000);
     m_irrScene->setAmbientLight(video::SColorf(0.3,0.3,0.3,1));
-
-    //put objects created by loader into bullet world
-    for(size_t i = 0; i < m_objects.size(); i++)
-    {
-        //ship
-        if(i == 1)
-        {
-            m_btShip = m_objects[i]->getRigid();
-            m_btShip->setActivationState(DISABLE_DEACTIVATION);
-            m_btShip->setLinearVelocity(m_btShip->getWorldTransform().getBasis() * (btVector3( 0.f, 0.0f, m_velocity )));
-            m_IShip = m_objects[i]->getNode();
-        }
-        m_btWorld->addRigidBody(m_objects[i]->getRigid());
-        m_objects[i]->getRigid()->setDamping(0.9f,0.9f);
-        m_objects[i]->getRigid()->activate();
-    }
-    for(size_t i = 0; i < m_constraints.size(); i++)
-    {
-        m_btWorld->addConstraint(m_constraints[i].get());
-    }
-
-    m_btShip->setGravity(btVector3(0,0,0));
-    m_terrainTransform.setIdentity();
-    m_objects[0]->getRigid()->getCollisionShape()->getAabb(m_terrainTransform,m_maxBoud,m_minBound);
-    m_minBound.setY(m_minBound.getY()+51);
 
     //camera
     m_Camera = m_irrScene->addCameraSceneNode();
@@ -163,10 +143,19 @@ void  gg::MGame::CreateStartScene()
     //rendered distance
     m_Camera->setFarValue(1000);
 
+    createEngineGlow(m_IShip);
 
+    for(auto&& object : m_objects)
+    {
+        updateRender(object->getRigid());
+    }
+}
+
+void gg::MGame::createEngineGlow(ISceneNode* parent)
+{
     scene::IParticleSystemSceneNode* ps =
     m_irrScene->addParticleSystemSceneNode(false);
-    ps->setParent(m_IShip);
+    ps->setParent(parent);
 
     scene::IParticleEmitter* em = ps->createSphereEmitter(
         vector3df(0,0,0),
@@ -193,15 +182,9 @@ void  gg::MGame::CreateStartScene()
     ps->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
     ps->setMaterialTexture(0, m_irrDriver->getTexture("media/glow.jpg"));
     ps->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
-    //ps->doParticleSystem(1000);
-
-    for(auto&& object : m_objects)
-    {
-        UpdateRender(object->getRigid());
-    }
 }
 
-void  gg::MGame::ApplyEvents()
+void  gg::MGame::applyEvents()
 {
     const float torque = std::sqrt(m_btShip->getLinearVelocity().length())/100 + 0.01;
 
@@ -255,23 +238,23 @@ void  gg::MGame::ApplyEvents()
 
     if(m_events->keyDown(irr::KEY_SPACE))
     {
-        if(m_irrTimer->getTime() - m_shot_time > 300)
+        if(m_irrTimer->getTime() - m_shot_time > 500)
         {
             m_shot_time = m_irrTimer->getTime();
-            Shoot();
+            shoot();
         }
     }
 
 }
 
-void gg::MGame::ApplySettings()
+void gg::MGame::applySettings()
 {
     if(m_paused && m_events->keyPressed(irr::KEY_SPACE))
     {
         m_paused = false;
     }
 
-    if(m_events->keyPressed('P'))
+    if(!m_paused && m_events->keyPressed('P'))
     {
         m_paused = true;
     }
@@ -282,63 +265,18 @@ void gg::MGame::ApplySettings()
     }
 }
 
-void  gg::MGame::Shoot()
+void  gg::MGame::shoot()
 {
-    ///bullet size
-    ISceneNode* Node = m_irrScene->addLightSceneNode();
-    Node->setMaterialType(EMT_SOLID);
-    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-
-    // Set the initial position
-    btTransform Transform;
-    Transform.setIdentity();
-
-    btVector3 start(0,-0.1,-0.5);
-    Transform.setOrigin(m_btShip->getCenterOfMassPosition() + m_btShip->getWorldTransform().getBasis() * start);
-
-    // Give it a default MotionState
-    btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
-
-    // Create the shape/hitbox
-    btCollisionShape *Shape = new btSphereShape(0.1f);
-
-    // Add mass
-    btVector3 LocalInertia;
-    btScalar Mass = 750.0f;
-    Shape->calculateLocalInertia(Mass, LocalInertia);
-
-    // Create the rigid body object
-    btRigidBody *bullet = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
-
-    //shoot it with speed
-    bullet->applyImpulse(m_btShip->getWorldTransform().getBasis() * btVector3(0,0,-75000), m_btShip->getCenterOfMassPosition());
-
-    MObject* obj = new MObject(bullet, Node, &MMaterial::Shot);
-
-    // Store a pointer to the irrlicht node so we can update it later
-    bullet->setUserPointer((void *)(obj));
-
-    // Add it to the world
-    m_btWorld->addRigidBody(bullet);
-    bullet->setGravity(btVector3(0,0,0));
-
-    m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
-
-
-    // attach billboard to light
-
-    ISceneNode* nodeB = m_irrScene->addBillboardSceneNode(Node, core::dimension2d<f32>(0.5, 0.5));
-    nodeB->setMaterialFlag(video::EMF_LIGHTING, false);
-    nodeB->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
-    nodeB->setMaterialTexture(0, m_irrDriver->getTexture("media/shot3.jpg"));
+    btVector3 position = m_btShip->getCenterOfMassPosition() + m_btShip->getWorldTransform().getBasis() * btVector3(0,-0.1,-0.5);
+    btVector3 impulse = m_btShip->getWorldTransform().getBasis() * btVector3(0,0,-75000);
+    MObject* shot = m_objectCreator->shoot(position, impulse);
+    m_btWorld->addRigidBody(shot->getRigid());
+    shot->getRigid()->setGravity(btVector3(0,0,0));
+    m_objects.push_back(std::unique_ptr<gg::MObject>(shot));
 
 }
 
-//following functions are copied from http://www.irrlicht3d.org/wiki/index.php?n=Main.GettingStartedWithBullet
-
-// Runs the physics simulation.
-// - TDeltaTime tells the simulation how much time has passed since the last frame so the simulation can run independently of the frame rate.
-void  gg::MGame::UpdatePhysics(u32 TDeltaTime)
+void  gg::MGame::updatePhysics(u32 TDeltaTime)
 {
     m_objects.erase(std::remove_if(m_objects.begin(),m_objects.end(),[](auto&& x){return x->isDeleted();}),m_objects.end());
     m_btWorld->stepSimulation(TDeltaTime * 0.001f, 1, 1./60.);
@@ -346,14 +284,13 @@ void  gg::MGame::UpdatePhysics(u32 TDeltaTime)
     {
         if(!object->isDeleted())
         {
-            UpdateRender(object->getRigid());
+            updateRender(object->getRigid());
         }
     }
     m_resolver->resolveAll();
 }
 
-// Passes bullet's orientation to irrlicht
-void  gg::MGame::UpdateRender(btRigidBody *TObject)
+void  gg::MGame::updateRender(btRigidBody *TObject)
 {
     ISceneNode *Node = (static_cast<MObject *>(TObject->getUserPointer()))->getNode();
     if(Node)

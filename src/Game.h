@@ -5,6 +5,7 @@
 #include "EventReceiver.h"
 #include "Loader.h"
 #include "CollisionResolver.h"
+#include "ObjectCreator.h"
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
@@ -18,55 +19,46 @@
 
 namespace gg {
 
-class MEventReceiver;
-
 class MGame
 {
-
-    friend class MEventReceiver;
-
-private:
-    void CreateStartScene();
-    std::tuple<btRigidBody*, irr::scene::IMeshSceneNode*> CreateShip(const btVector3 &TPosition);
-    void CreateBox(const btVector3 &TPosition, const irr::core::vector3df &TScale, btScalar TMass);
-    void UpdatePhysics(irr::u32 TDeltaTime);
-    void UpdateRender(btRigidBody *TObject);
-    void Shoot();
-    void ApplyEvents();
-    void ApplySettings();
-
-    //IrrlichtDevice *irrDevice;
-    btDiscreteDynamicsWorld *m_btWorld;
-
-    bool m_done, m_paused = true;
-    bool m_left = false;
-    irr::video::IVideoDriver *m_irrDriver;
-    irr::scene::ISceneManager *m_irrScene;
-    irr::gui::IGUIEnvironment *m_irrGUI;
-    irr::ITimer *m_irrTimer;
-    irr::scene::ISceneNode* m_IShip;
-    irr::scene::ICameraSceneNode* m_Camera;
-    btRigidBody* m_btShip = 0;
-    float m_velocity;
-    std::unique_ptr<MObjectCreator> m_objectCreator;
-    irr::u32 m_shot_time = 0;
-
-    std::unique_ptr<irr::IrrlichtDevice> m_irrDevice;
-    std::unique_ptr<MLoader> m_loader;
-    std::vector<std::unique_ptr<MObject>> m_objects;
-    MEventReceiver* m_events;
-    btTransform m_terrainTransform;
-    btVector3 m_minBound, m_maxBoud;
-    std::vector<std::unique_ptr<btFixedConstraint>> m_constraints;
-    std::unique_ptr<MCollisionResolver> m_resolver;
-
 public:
-    void Run(bool debug, bool gravity);
+    void run(bool debug, bool gravity);
     ~MGame();
     MGame();
     MGame(const MGame&) = delete;
     MGame& operator=(const MGame&) = delete;
 
+private:
+    void createStartScene();
+    void createEngineGlow(irr::scene::ISceneNode* parent);
+    void updatePhysics(irr::u32 TDeltaTime);
+    void updateRender(btRigidBody *TObject);
+    void shoot();
+    void applyEvents();
+    void applySettings();
+
+    btDiscreteDynamicsWorld *m_btWorld;
+    std::unique_ptr<irr::IrrlichtDevice> m_irrDevice;
+    irr::video::IVideoDriver *m_irrDriver;
+    irr::scene::ISceneManager *m_irrScene;
+    irr::gui::IGUIEnvironment *m_irrGUI;
+    irr::ITimer *m_irrTimer;
+    irr::scene::ICameraSceneNode* m_Camera;
+    irr::scene::ISceneNode* m_IShip;
+    btRigidBody* m_btShip = 0;
+    btDefaultCollisionConfiguration* m_collisionConfiguration;
+    btBroadphaseInterface* m_broadPhase;
+    btCollisionDispatcher* m_dispatcher;
+    btSequentialImpulseConstraintSolver* m_solver;
+
+    std::unique_ptr<MObjectCreator> m_objectCreator;
+    std::vector<std::unique_ptr<MObject>> m_objects;
+    std::unique_ptr<MCollisionResolver> m_resolver;
+    MEventReceiver* m_events;
+
+    float m_velocity;
+    irr::u32 m_shot_time = 0;
+    bool m_done, m_paused = true;
 };
 
 class MDebugDraw : public btIDebugDraw

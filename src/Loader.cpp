@@ -11,14 +11,12 @@ using namespace gui;
 
 gg::MLoader::MLoader(irr::IrrlichtDevice* device) : m_irrDevice(device)
 {
-
 }
 
-std::tuple<std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr<btFixedConstraint>>> gg::MLoader::load(std::string level)
+std::vector<std::unique_ptr<gg::MObject>> gg::MLoader::load(std::string level)
 {
     m_objects = std::vector<std::unique_ptr<gg::MObject>>();
     m_objectCreator.reset(new MObjectCreator(m_irrDevice));
-    btRigidBody* ground = 0;
 
     std::string current_line;
     //open level file
@@ -36,7 +34,6 @@ std::tuple<std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr
     obj = m_objectCreator->createSolidGround(split(std::stringstream(current_line)));
     if(obj)
     {
-        ground = obj->getRigid();
         m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
     }
 
@@ -53,21 +50,15 @@ std::tuple<std::vector<std::unique_ptr<gg::MObject>>,std::vector<std::unique_ptr
     {
         if(current_line != "")
         {
-            std::vector<MObject*> objs;
-            std::vector<btFixedConstraint*> constraints;
             MObject* obj = m_objectCreator->createMeshRigidBody(split(std::stringstream(current_line)));
             if(obj)
             {
-                btTransform tr = obj->getRigid()->getWorldTransform().inverse();
-                btFixedConstraint* fixed = new btFixedConstraint(*ground,*obj->getRigid(),ground->getWorldTransform().inverse(),tr);
-                fixed->setBreakingImpulseThreshold(5000);
                 m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
-               // m_constraints.push_back(std::unique_ptr<btFixedConstraint>(fixed));
             }
         }
     }
     fin.close();
-    return std::move(std::make_tuple(std::move(m_objects), std::move(m_constraints)));
+    return std::move(std::move(m_objects));
 }
 
 bool gg::MLoader::loadSkybox(std::vector<std::string>&& files)

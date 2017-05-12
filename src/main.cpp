@@ -11,7 +11,7 @@ int main(int argc, char** argv)
             gravity = !(std::string (argv[i]) == "-g");
     }
     gg::MGame g;
-    g.Run(debug,gravity);
+    g.run(debug,gravity);
 
 
 return 0;

@@ -14,7 +14,7 @@ using namespace CGAL;
 
 namespace
 {
-    irr::scene::IMesh* convertPolyToMesh(Polyhedron_3<Exact_predicates_exact_constructions_kernel> &poly)
+    IMesh* convertPolyToMesh(CGAL::Polyhedron_3<CGAL::Exact_predicates_exact_constructions_kernel> &poly)
     {
         typedef Polyhedron_3<Exact_predicates_exact_constructions_kernel> Polyhedron;
         Polygon_mesh_processing::triangulate_faces(poly);
@@ -24,8 +24,8 @@ namespace
         buf = new SMeshBuffer();
         mesh->addMeshBuffer(buf);
         buf->drop();
-        buf->Vertices.reallocate(poly.size_of_vertices());
-        buf->Vertices.set_used(poly.size_of_vertices());
+        buf->Vertices.reallocate(poly.size_of_vertices()*3);
+        buf->Vertices.set_used(poly.size_of_vertices()*3);
         buf->Indices.reallocate(poly.size_of_facets()*3);
         buf->Indices.set_used(poly.size_of_facets()*3);
         int i = 0;
@@ -56,9 +56,7 @@ namespace
         }
         return mesh;
     }
-
 }
-
 
 btBvhTriangleMeshShape* gg::MeshManipulators::convertMesh(IMeshSceneNode * node)
 {
@@ -83,23 +81,7 @@ btBvhTriangleMeshShape* gg::MeshManipulators::convertMesh(IMeshSceneNode * node)
     return new btBvhTriangleMeshShape( btMesh, true );
 }
 
-btConvexHullShape* gg::MeshManipulators::convertMeshToHull(IMeshSceneNode * node)
-{
-    btConvexHullShape* hull= new btConvexHullShape();
-    for (irr::u32 j = 0; j < node->getMesh()->getMeshBufferCount(); j++)
-    {
-        IMeshBuffer* meshBuffer = node->getMesh()->getMeshBuffer(j);
-        S3DVertex* vertices = (S3DVertex*)meshBuffer->getVertices();
-        for(irr::u32 i = 0; i < meshBuffer->getVertexCount(); i++)
-        {
-            vector3df vertex = vertices[i].Pos;
-            hull->addPoint(btVector3(vertex.X, vertex.Y, vertex.Z));
-        }
-    }
-    return hull;
-}
-
-IMesh *gg::MeshManipulators::subtractMesh(IMesh *from, IMesh *what, vector3df position)
+IMesh* gg::MeshManipulators::subtractMesh(IMesh *from, IMesh *what, vector3df position)
 {
     Polyhedron poly_from;
     PolyhedronBuilder mesh_from(from);

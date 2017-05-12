@@ -2,7 +2,6 @@
 #define COLLISIONRESOLVER_H
 
 #include "Object.h"
-//#include "Material.h"
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>

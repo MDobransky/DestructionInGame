@@ -2,7 +2,6 @@
 #include "Material.h"
 #include "MeshManipulators.h"
 
-
 #include <iostream>
 #include <cmath>
 #include <map>
@@ -118,22 +117,8 @@ gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&&
 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
-    //btConvexHullShape* hull = new btConvexHullShape();
-    /*aabbox3df box = Node->getTransformedBoundingBox();
-    float width =abs(box.MaxEdge.X-box.MinEdge.X);
-    float height=abs(box.MaxEdge.Y-box.MinEdge.Y);
-    float length=abs(box.MaxEdge.Z-box.MinEdge.Z);*/
-    btBoxShape*hull = new btBoxShape(btVector3(0.1f, 0.1f, 0.1f));
-
-    /*std::vector<btVector3> vertices(getVertices(Node));
-    for (auto&& v : vertices)
-    {
-        hull->addPoint(v);
-    }
-*/
     // Create the shape
-    btCollisionShape* Shape = hull;
-    //Shape->setMargin( 0.05f );
+    btCollisionShape* Shape = new btBoxShape(btVector3(0.1f, 0.1f, 0.1f));
 
     // Add mass
     btVector3 localInertia;
@@ -206,6 +191,41 @@ gg::MObject* gg::MObjectCreator::createSolidGround(std::vector<std::string>&& it
     MObject * obj = new MObject(RigidBody, Node, &MMaterial::Magic);
 
     RigidBody->setUserPointer((void *)(obj));
+
+    return obj;
+}
+
+gg::MObject* gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
+{
+    ///bullet size
+    ISceneNode* Node = m_irrDevice->getSceneManager()->addLightSceneNode();
+    Node->setMaterialType(EMT_SOLID);
+    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+
+    // Set the initial position
+    btTransform Transform;
+    Transform.setIdentity();
+    Transform.setOrigin(position);
+
+    btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
+
+    btCollisionShape *Shape = new btSphereShape(0.1f);
+
+    btVector3 LocalInertia;
+    btScalar Mass = 750.0f;
+    Shape->calculateLocalInertia(Mass, LocalInertia);
+
+    btRigidBody *bullet = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
+    bullet->applyImpulse(impulse, position);
+
+    MObject* obj = new MObject(bullet, Node, &MMaterial::Shot);
+
+    bullet->setUserPointer((void *)(obj));
+
+    ISceneNode* nodeB = m_irrDevice->getSceneManager()->addBillboardSceneNode(Node, core::dimension2d<f32>(0.5, 0.5));
+    nodeB->setMaterialFlag(video::EMF_LIGHTING, false);
+    nodeB->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
+    nodeB->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/shot3.jpg"));
 
     return obj;
 }
