@@ -1,5 +1,4 @@
 #include "Game.h"
-#include "Material.h"
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -30,7 +29,7 @@ gg::MGame::MGame()
     m_btWorld = new btDiscreteDynamicsWorld(m_dispatcher, m_broadPhase, m_solver, m_collisionConfiguration);
 
     m_objectCreator.reset(new MObjectCreator(m_irrDevice.get()));
-    m_resolver = std::make_unique<MCollisionResolver>(m_irrDevice.get(), m_btWorld, &m_objects);
+    m_resolver = std::make_unique<MCollisionResolver>(m_irrDevice.get(), m_btWorld, m_objectCreator.get(), &m_objects);
 }
 
 gg::MGame::~MGame()
@@ -76,7 +75,7 @@ void gg::MGame::run(bool debug, bool gravity)
        debugMat.Lighting = false;
     const bool debug_draw_bullet = debug;
 
-    m_btWorld->setGravity(btVector3(0,gravity ? -256 : 0,0));
+    m_btWorld->setGravity(btVector3(0,gravity ? -9 : 0,0));
     m_btShip->setGravity(btVector3(0,0,0));
     createStartScene();
 

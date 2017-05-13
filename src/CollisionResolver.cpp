@@ -1,5 +1,6 @@
 #include "CollisionResolver.h"
 #include "MeshManipulators.h"
+#include <thread>
 
 using namespace irr;
 using namespace core;
@@ -23,7 +24,12 @@ std::ostream& operator<<(std::ostream& os, const btVector3& v)
 }
 #endif
 
-gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice *irrDev, btDiscreteDynamicsWorld *btDDW, std::vector<std::unique_ptr<MObject>>* objs) : m_irrDevice(irrDev), m_btWorld(btDDW), m_objects(objs)
+gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice* irrDev, btDiscreteDynamicsWorld* btDDW,
+                                           MObjectCreator* creator, std::vector<std::unique_ptr<MObject>>* objs)
+    : m_irrDevice(irrDev),
+      m_btWorld(btDDW),
+      m_objectCreator(creator),
+      m_objects(objs)
 {
 }
 
@@ -32,157 +38,85 @@ gg::MCollisionResolver::~MCollisionResolver()
 
 }
 
-std::vector<gg::MObject *> gg::MCollisionResolver::getDeleted()
+void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btVector3 from, btScalar impulse, MObject::Material other)
 {
-    return std::move(m_toDelete);
-}
-
-void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btVector3 from, btScalar impulse)
-{
-    const MMaterial* material = obj->getMaterial();
-    if(material == &MMaterial::Magic)
+    MObject::Material material = obj->getMaterial();
+    if(material == MObject::Material::GROUND)
     {
         //nothing
     }
-    else if(material == &MMaterial::Shot && impulse > 20)
+    else if(material == MObject::Material::SHOT && impulse > 20)
     {
         m_btWorld->removeCollisionObject(obj->getRigid());
         obj->removeNode();
         obj->setDeleted();
     }
-    else if(material != &MMaterial::Ship)
+    else if(material != MObject::Material::SHIP)
     {
-        if(impulse > 20) //get material property
+        if((other != MObject::Material::GROUND && impulse > 0) || impulse > 200)
         {
             //push event to stack, generate dust to cover
             //take from stack, use voro++ to create convex shape
             //subtract shape from mesh and replace it
             //cut convex shape to bits and put them to world
-            generateVoro(obj,point,from,4);
-        /*    scene::IParticleSystemSceneNode* ps =
-            m_irrDevice->getSceneManager()->addParticleSystemSceneNode(false);
+            using namespace voro;
+                float cube_size = 2 + 2*0.2f;
+                container con(point.getX()-cube_size,point.getX()+cube_size,
+                              point.getY()-cube_size,point.getY()+cube_size,
+                              point.getZ()-cube_size,point.getZ()+cube_size,
+                              8,8,8,
+                              false,false,false,
+                              8);
+                con.put(0,point.getX(),point.getY(),point.getZ());
+                c_loop_all loop(con);
+                loop.start();
+                voronoicell c;
+                con.compute_cell(c,loop);
+                IMesh* mesh = gg::MeshManipulators::convertMesh(c);
 
-            scene::IParticleEmitter* em = ps->createSphereEmitter(
-                vector3df(point.getX(),point.getY(),point.getZ()),
-                2.f,
-                core::vector3df(0.0f,0.0f,0.0f),   // initial direction
-                1000,10000,                             // emit rate
-                video::SColor(0,0,0,0),       // darkest color
-                video::SColor(0,100,100,100),       // brightest color
-                1000,2000,0,                         // min and max age, angle
-                core::dimension2df(1,1),         // min size
-                core::dimension2df(3.f,3.f));        // max size
+           generateDebree(mesh,point,(from-point)*3, obj->getMaterial());
 
-            ps->setEmitter(em); // this grabs the emitter
-            em->drop(); // so we can drop it here without deleting it
+           try
+           {
+               IMesh* new_mesh = MeshManipulators::subtractMesh(static_cast<IMeshSceneNode*>(obj->getNode())->getMesh(), mesh, vector3df(loop.x(),loop.y(),loop.z()) - obj->getNode()->getPosition());
 
-            scene::IParticleAffector* paf = ps->createFadeOutParticleAffector();
-
-            ps->addAffector(paf); // same goes for the affector
-            paf->drop();
-
-            ps->setPosition(obj->getNode()->getAbsolutePosition());
-            ps->setScale(core::vector3df(1,1,1));
-            ps->setMaterialFlag(video::EMF_LIGHTING, false);
-            ps->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
-            ps->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/dust2.png"));
-            ps->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
-            ps->doParticleSystem(1000);
-            */
-            //m_btWorld->removeCollisionObject(obj->getRigid());
-            //obj->removeNode();
-            //obj->setDeleted();
+               if(new_mesh)
+               {
+                   IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
+                   Node->setMesh(new_mesh);
+                   Node->setMaterialType(EMT_SOLID);
+                   Node->setMaterialFlag(EMF_LIGHTING, 0);
+                   Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+                   btRigidBody* body = obj->getRigid();
+                   delete body->getCollisionShape();
+                   btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+                   Shape->setMargin( 0.05f );
+                   body->setCollisionShape(Shape);
+               }
+               else
+               {
+                   m_btWorld->removeCollisionObject(obj->getRigid());
+                   obj->removeNode();
+                   obj->setDeleted();
+               }
+           }
+           catch(...)
+           {
+               std::cout << "FAILED\n";
+           }
         }
     }
 }
 
-void gg::MCollisionResolver::generateVoro(gg::MObject* obj, btVector3 point, btVector3 from, btScalar size)
+void gg::MCollisionResolver::generateDebree(IMesh* mesh, btVector3 point, btVector3 impulse, MObject::Material material)
 {
-using namespace voro;
-    float cube_size = size + size*0.2f;
-    container con(point.getX()-cube_size,point.getX()+cube_size,
-                  point.getY()-cube_size,point.getY()+cube_size,
-                  point.getZ()-cube_size,point.getZ()+cube_size,
-                  8,8,8,
-                  false,false,false,
-                  8);
-/*
-    wall_cylinder cyl(point.getX(),point.getY(),point.getZ(),
-                      from.getX(),from.getY(),from.getZ(),
-                      size);
-    con.add_wall(cyl);*/
-/*
-    wall_custom body_wall(this,obj->getRigid(),from);
-    con.add_wall(body_wall);
-*/
-    /*for(int i = 1; i < 10; i++)
-    {
-        int x = rand()%int(2*cube_size)+point.getX()-cube_size;
-        int y = rand()%int(2*cube_size)+point.getY()-cube_size;
-        int z = rand()%int(2*cube_size)+point.getZ()-cube_size;
-        if(con.point_inside(x,y,z))
-        {
-            con.put(i,x,y,z);
-            break;
-        }
-    }*/
-    con.put(0,point.getX(),point.getY(),point.getZ());
-    c_loop_all loop(con);
-    loop.start();
-    voronoicell c;
-    //do
-    {
-        //if(con.compute_cell(c,loop) && (btVector3(loop.x(),loop.y(),loop.z()) - point).length() > size/3)
-        {
-            voronoicell c;
-            con.compute_cell(c,loop);
-            //c.init_base(-2,2,-2,2,-2,2);
-            IMesh* mesh = gg::MeshManipulators::createMesh(c);
-           /* btTransform Transform;
-            Transform.setIdentity();
-            Transform.setOrigin(btVector3(loop.x(),loop.y(),loop.z()));
-            btRigidBody *RigidBody = new btRigidBody(0, new btDefaultMotionState(Transform), new btBvhTriangleMeshShape(btMesh, false), btVector3());
-            //m_btWorld->addRigidBody(RigidBody);
-*/
 
-
-            IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
-            Node->setPosition(vector3df(loop.x(),loop.y(),loop.z()));
-           // MObject* fragment = new MObject(RigidBody, Node, &MMaterial::Magic);
-    Node->setVisible(0);
-            //RigidBody->setUserPointer((void *)(fragment));
-            //m_objects->push_back(std::unique_ptr<gg::MObject>(fragment));
-
-            try
-            {
-                IMesh* new_mesh = MeshManipulators::subtractMesh(static_cast<IMeshSceneNode*>(obj->getNode())->getMesh(), mesh, Node->getPosition() - obj->getNode()->getPosition());
-
-                if(new_mesh)
-                {
-                    Node = static_cast<IMeshSceneNode*>(obj->getNode());
-                    Node->setMesh(new_mesh);
-                    Node->setMaterialType(EMT_SOLID);
-                    Node->setMaterialFlag(EMF_LIGHTING, 0);
-                    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-                    btRigidBody* body = obj->getRigid();
-                    delete body->getCollisionShape();
-                    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
-                    Shape->setMargin( 0.05f );
-                    body->setCollisionShape(Shape);
-                }
-                else
-                {
-                    m_btWorld->removeCollisionObject(obj->getRigid());
-                    obj->removeNode();
-                    obj->setDeleted();
-                }
-            }
-            catch(...)
-            {
-                std::cout << "FAILED\n";
-            }
-        }
-    } //while (loop.inc());
+    IMesh* fragment_mesh = m_irrDevice->getSceneManager()->getMeshManipulator()->createMeshUniquePrimitives(mesh);
+    m_irrDevice->getSceneManager()->getMeshManipulator()->scale(fragment_mesh,vector3df(0.5,0.5,0.5));
+    MObject* fragment = m_objectCreator->createMeshRigidBody(fragment_mesh, point, 30, material);
+    m_objects->push_back(std::unique_ptr<MObject>(fragment));
+    m_btWorld->addRigidBody(fragment->getRigid());
+    fragment->getRigid()->applyImpulse(impulse, point);
 }
 
 bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3 point,btVector3 from)
@@ -221,25 +155,61 @@ void gg::MCollisionResolver::resolveAll()
             btManifoldPoint& pt = contactManifold->getContactPoint(0);
             btVector3 ptA = pt.getPositionWorldOnA();
             btVector3 ptB = pt.getPositionWorldOnB();
-
             btScalar impulse = pt.getAppliedImpulse();
+
+            MObject* objectA, *objectB;
+            objectA = static_cast<MObject*>(obA->getUserPointer());
+            objectB = static_cast<MObject*>(obB->getUserPointer());
+
             if(obA->getUserPointer())
             {
-                MObject* objectA = static_cast<MObject*>(obA->getUserPointer());
-                if(!objectA->isDeleted())
-                {
-                    resolveCollision(objectA, ptA, ptA-ptB, impulse);
-                }
+                objectA = static_cast<MObject*>(obA->getUserPointer());
             }
             if(obB->getUserPointer())
             {
-                MObject* objectB = static_cast<MObject*>(obB->getUserPointer());
-                if(!objectB->isDeleted())
-                {
-                    resolveCollision(objectB, ptB, ptB-ptA, impulse);
-                }
+                objectB = static_cast<MObject*>(obB->getUserPointer());
+            }
+
+            if(!objectA->isDeleted())
+            {
+                resolveCollision(objectA, ptA, ptA-ptB, impulse, objectB->getMaterial());
+            }
+            if(!objectB->isDeleted())
+            {
+                resolveCollision(objectB, ptB, ptB-ptA, impulse, objectA->getMaterial());
             }
         }
     }
 }
 
+//DUST GENERATOR
+/*    scene::IParticleSystemSceneNode* ps =
+    m_irrDevice->getSceneManager()->addParticleSystemSceneNode(false);
+
+    scene::IParticleEmitter* em = ps->createSphereEmitter(
+        vector3df(point.getX(),point.getY(),point.getZ()),
+        2.f,
+        core::vector3df(0.0f,0.0f,0.0f),   // initial direction
+        1000,10000,                             // emit rate
+        video::SColor(0,0,0,0),       // darkest color
+        video::SColor(0,100,100,100),       // brightest color
+        1000,2000,0,                         // min and max age, angle
+        core::dimension2df(1,1),         // min size
+        core::dimension2df(3.f,3.f));        // max size
+
+    ps->setEmitter(em); // this grabs the emitter
+    em->drop(); // so we can drop it here without deleting it
+
+    scene::IParticleAffector* paf = ps->createFadeOutParticleAffector();
+
+    ps->addAffector(paf); // same goes for the affector
+    paf->drop();
+
+    ps->setPosition(obj->getNode()->getAbsolutePosition());
+    ps->setScale(core::vector3df(1,1,1));
+    ps->setMaterialFlag(video::EMF_LIGHTING, false);
+    ps->setMaterialFlag(video::EMF_ZWRITE_ENABLE, false);
+    ps->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/dust2.png"));
+    ps->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
+    ps->doParticleSystem(1000);
+    */

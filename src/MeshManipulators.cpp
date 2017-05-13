@@ -86,7 +86,7 @@ btBvhTriangleMeshShape* gg::MeshManipulators::convertMesh(IMeshSceneNode * node)
     return new btBvhTriangleMeshShape( btMesh, true );
 }
 
-IMesh*gg::MeshManipulators::createMesh(voro::voronoicell& cell)
+IMesh* gg::MeshManipulators::convertMesh(voro::voronoicell& cell)
 {
     std::vector<double> vertices;
     std::vector<int> face_vertices;
@@ -108,7 +108,7 @@ IMesh*gg::MeshManipulators::createMesh(voro::voronoicell& cell)
                                      float(vertices[i]),
                                      float(vertices[i+1]),
                                      float(vertices[i+2]),
-                                     video::SColor(100,100,100,100), 0, 1);
+                                     video::SColor(255,rand()%256,rand()%256,rand()%256), 0, 0);
     }
     buf->Indices.reallocate(face_vertices.size()*10);
 
@@ -118,8 +118,8 @@ IMesh*gg::MeshManipulators::createMesh(voro::voronoicell& cell)
         for(int j = 1; j < face_vertices[i]-1; j++)
         {
             buf->Indices[indices] = face_vertices[i+1]*3;
-            buf->Indices[indices+1] = face_vertices[i+j+1]*3;
-            buf->Indices[indices+2] = face_vertices[i+j+2]*3;
+            buf->Indices[indices+1] = face_vertices[i+j+2]*3;
+            buf->Indices[indices+2] = face_vertices[i+j+1]*3;
             indices += 3;
         }
         i += face_vertices[i]+1;

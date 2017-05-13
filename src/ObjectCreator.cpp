@@ -1,5 +1,4 @@
 #include "ObjectCreator.h"
-#include "Material.h"
 #include "MeshManipulators.h"
 
 #include <iostream>
@@ -39,7 +38,6 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     core::vector3df scale(numbers[6],numbers[7],numbers[8]);
     const btScalar Mass = numbers[9];
 
-
     IMesh* mesh_orig = m_irrDevice->getSceneManager()->getMesh((m_media + input).c_str());
     IMesh* mesh = m_irrDevice->getSceneManager()->getMeshManipulator()->createMeshUniquePrimitives(mesh_orig);
 
@@ -70,7 +68,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
     // Create the rigid body object
     btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
-    const MMaterial* material = MMaterial::getMaterial(items[2][0]);
+    MObject::Material material = MObject::Material::BUILDING;
 
     MObject* obj = new MObject(rigidBody, Node, material);
     // Store a pointer to the irrlicht node so we can update it later
@@ -127,10 +125,9 @@ gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&&
     // Create the rigid body object
     btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
-   const MMaterial* material = MMaterial::getMaterial(items[2][0]);
+    MObject::Material material = MObject::Material::SHIP;
 
     MObject* obj = new MObject(rigidBody, Node, material);
-    // Store a pointer to the irrlicht node so we can update it later
     rigidBody->setUserPointer((void *)(obj));
 
     return obj;
@@ -188,7 +185,7 @@ gg::MObject* gg::MObjectCreator::createSolidGround(std::vector<std::string>&& it
     btRigidBody *RigidBody = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
     RigidBody->setGravity(btVector3(0,0,0));
 
-    MObject * obj = new MObject(RigidBody, Node, &MMaterial::Magic);
+    MObject * obj = new MObject(RigidBody, Node, MObject::Material::GROUND);
 
     RigidBody->setUserPointer((void *)(obj));
 
@@ -209,7 +206,7 @@ gg::MObject* gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
 
     btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
 
-    btCollisionShape *Shape = new btSphereShape(0.1f);
+    btCollisionShape *Shape = new btSphereShape(0.2f);
 
     btVector3 LocalInertia;
     btScalar Mass = 750.0f;
@@ -218,7 +215,7 @@ gg::MObject* gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
     btRigidBody *bullet = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
     bullet->applyImpulse(impulse, position);
 
-    MObject* obj = new MObject(bullet, Node, &MMaterial::Shot);
+    MObject* obj = new MObject(bullet, Node, MObject::Material::SHOT);
 
     bullet->setUserPointer((void *)(obj));
 
@@ -228,6 +225,34 @@ gg::MObject* gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
     nodeB->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/shot3.jpg"));
 
     return obj;
+}
+
+gg::MObject* gg::MObjectCreator::createMeshRigidBody(IMesh* mesh, btVector3 position, btScalar mass, MObject::Material material)
+{
+    IMeshSceneNode* Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
+    Node->setPosition(vector3df(position.getX(), position.getY(), position.getZ()));
+    Node->setMaterialType(EMT_SOLID);
+    Node->setMaterialFlag(EMF_LIGHTING, 0);
+    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+
+    btTransform Transform;
+    Transform.setIdentity();
+    Transform.setOrigin(position);
+
+    btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
+
+    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+    Shape->setMargin( 0.05f );
+
+    btVector3 localInertia;
+    Shape->calculateLocalInertia(mass, localInertia);
+
+    btRigidBody *rigidBody = new btRigidBody(mass, motionState, Shape, localInertia);
+
+    MObject* fragment = new MObject(rigidBody, Node, material);
+    rigidBody->setUserPointer((void *)(fragment));
+
+    return fragment;
 }
 
 

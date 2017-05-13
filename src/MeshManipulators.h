@@ -1,10 +1,12 @@
 #ifndef MESHMANIPULATORS_H
 #define MESHMANIPULATORS_H
 
+#define CGAL_DISABLE_ROUNDING_MATH_CHECK
+
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
 #include <btBulletDynamicsCommon.h>
-#define CGAL_DISABLE_ROUNDING_MATH_CHECK
+
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/Polyhedron_incremental_builder_3.h>
 #include <CGAL/Nef_polyhedron_3.h>
@@ -30,7 +32,7 @@ namespace gg
 
     public:
         static btBvhTriangleMeshShape* convertMesh(irr::scene::IMeshSceneNode*);
-        static irr::scene::IMesh* createMesh(voro::voronoicell& cell);
+        static irr::scene::IMesh* convertMesh(voro::voronoicell& cell);
         static irr::scene::IMesh* subtractMesh(irr::scene::IMesh* from, irr::scene::IMesh* what, irr::core::vector3df position);
 
     private:

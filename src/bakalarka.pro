@@ -8,7 +8,6 @@ SOURCES += main.cpp \
     EventReceiver.cpp \
     Game.cpp \
     Loader.cpp \
-    Material.cpp \
     ObjectCreator.cpp \
     MeshManipulators.cpp
 
@@ -17,7 +16,6 @@ HEADERS += \
     EventReceiver.h \
     Game.h \
     Loader.h \
-    Material.h \
     Object.h \
     ObjectCreator.h \
     MeshManipulators.h

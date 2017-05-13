@@ -2,7 +2,6 @@
 
 #ifndef OBJECT_H
 #define OBJECT_H
-#include "Material.h"
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
@@ -19,7 +18,8 @@ class MObject
 public:
     inline btRigidBody* getRigid() { return m_rigidBody.get(); }
     inline irr::scene::ISceneNode* getNode() { return m_irrSceneNode; }
-    inline const MMaterial* getMaterial() { return m_material; }
+    enum class Material {BUILDING, DEBREE, SHIP, SHOT, GROUND, DUST};
+    inline Material getMaterial() { return m_material; }
     inline bool isEmpty() { return m_empty; }
     inline bool isDeleted() { return m_deleted; }
     inline void setDeleted() { m_deleted = true; }
@@ -53,7 +53,7 @@ public:
         m_deleted = false;
     }
 
-    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, const MMaterial* mat) :
+    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, Material mat) :
         m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
         m_irrSceneNode(sn),
         m_material(mat)
@@ -78,7 +78,7 @@ private:
     std::unique_ptr<btRigidBody> m_rigidBody;
     irr::scene::ISceneNode* m_irrSceneNode;
     bool m_empty, m_deleted = false;
-    const MMaterial* m_material;
+    Material m_material;
 };
 
 }

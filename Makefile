@@ -6,7 +6,7 @@ SRCDIR=src/
 BUILDDIR=build/
 LFLAGS= -L/usr/lib
 LIBS= -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision \
-    -lLinearMath -lvoro++ -lgmp -lCGAL -lCGAL_Core -lmpfr
+    -lLinearMath -lvoro++ -lgmp -lCGAL -lCGAL_Core -lmpfr -lpthread 
 
 HEADERS= $(notdir $(wildcard $(SRCDIR)*.h))
 OBJS= $(addprefix $(BUILDDIR), $(subst .cpp,.o,$(notdir $(wildcard $(SRCDIR)*.cpp))))

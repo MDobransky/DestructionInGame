@@ -2,6 +2,7 @@
 #define COLLISIONRESOLVER_H
 
 #include "Object.h"
+#include "ObjectCreator.h"
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
@@ -17,18 +18,19 @@ namespace gg {
 class MCollisionResolver
 {
 public:
-    MCollisionResolver(irr::IrrlichtDevice*, btDiscreteDynamicsWorld*, std::vector<std::unique_ptr<MObject>>*);
+    MCollisionResolver(irr::IrrlichtDevice*, btDiscreteDynamicsWorld*, MObjectCreator*, std::vector<std::unique_ptr<MObject>>*);
     ~MCollisionResolver();
-    std::vector<MObject*> getDeleted();
     bool isInside(btRigidBody* body, btVector3 point, btVector3 from);
     void resolveAll();
 private:
-    void resolveCollision(MObject* object, btVector3 point, btVector3 from, btScalar impulse);
-    void generateVoro(MObject* body, btVector3 point, btVector3 from, btScalar size);
+    void resolveCollision(MObject* object, btVector3 point, btVector3 from, btScalar impulse, MObject::Material other_object);
+    void generateDebree(irr::scene::IMesh*, btVector3 point, btVector3 impulse, MObject::Material);
     irr::IrrlichtDevice* m_irrDevice;
     btDiscreteDynamicsWorld* m_btWorld;
+    MObjectCreator* m_objectCreator;
     std::vector<std::unique_ptr<MObject>>* m_objects;
     std::vector<MObject*> m_toDelete;
+
 
     class wall_custom : public voro::wall
     {
@@ -47,7 +49,6 @@ private:
         template<class TCell>
         bool cut_cell_base(TCell& c, double x, double y, double z)
         {
-            //std::cout << "cut\n";
             return c.nplane(x,y,z,m_id);
             return true;
         }
