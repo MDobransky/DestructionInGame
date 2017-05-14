@@ -36,12 +36,10 @@ namespace
         int i = 0;
         for(auto p = poly.points_begin(); p != poly.points_end(); p++)
         {
-            buf->Vertices[i] = S3DVertex(CGAL::to_double(p->x()),
-                                         CGAL::to_double(p->y()),
-                                         CGAL::to_double(p->z()),
-                                         CGAL::to_double(p->x()),
-                                         CGAL::to_double(p->y()),
-                                         CGAL::to_double(p->z()),
+            double a = CGAL::to_double(p->x());
+            double b = CGAL::to_double(p->y());
+            double c = CGAL::to_double(p->z());
+            buf->Vertices[i] = S3DVertex(a, b, c, a, b, c,
                                          video::SColor(255,rand()%256,rand()%256,rand()%256), 0, 0);
             i++;
         }
@@ -133,24 +131,28 @@ IMesh* gg::MeshManipulators::convertMesh(voro::voronoicell& cell)
 
 IMesh* gg::MeshManipulators::subtractMesh(IMesh *from, IMesh *what, vector3df position)
 {
-    Polyhedron poly_from;
-    PolyhedronBuilder mesh_from(from);
-    poly_from.delegate(mesh_from);
-
-    Polyhedron poly_what;
-    PolyhedronBuilder mesh_what(what, position);
-    poly_what.delegate(mesh_what);
-
-    if(poly_from.is_closed() && poly_what.is_closed())
+    if(from && what)
     {
-        Nef_polyhedron N1(poly_from);
-        Nef_polyhedron N2(poly_what);
-        Nef_polyhedron N3(N1-N2);
-        Polyhedron res;
-        N3.convert_to_polyhedron(res);
-        return convertPolyToMesh(res);
+        Polyhedron poly_from;
+        PolyhedronBuilder mesh_from(from);
+        poly_from.delegate(mesh_from);
+
+        Polyhedron poly_what;
+        PolyhedronBuilder mesh_what(what, position);
+        poly_what.delegate(mesh_what);
+
+        if(poly_from.is_closed() && poly_what.is_closed())
+        {
+            Nef_polyhedron N1(poly_from);
+            Nef_polyhedron N2(poly_what);
+            Nef_polyhedron N3(N1-N2);
+            Polyhedron res;
+            N3.convert_to_polyhedron(res);
+            return convertPolyToMesh(res);
+        }
+        return from;
     }
-    return from;
+    return NULL;
 }
 
 void gg::MeshManipulators::PolyhedronBuilder::operator()(gg::MeshManipulators::HalfedgeDS &hds)

@@ -15,7 +15,7 @@
 #include <thread>
 #include <future>
 #include <mutex>
-#include <queue>
+#include <deque>
 #include <atomic>
 
 namespace gg {
@@ -37,11 +37,12 @@ private:
     MObjectCreator* m_objectCreator;
     std::vector<std::unique_ptr<MObject>>* m_objects;
     std::vector<MObject*> m_toDelete;
-    std::queue<std::tuple<MObject*, irr::scene::IMesh*, irr::core::vector3df>> m_subtractionTasks;
-    std::queue<std::tuple<MObject*, irr::scene::IMesh*>> m_subtractionResults;
+    std::deque<std::tuple<MObject*, irr::scene::IMesh*, irr::core::vector3df>> m_subtractionTasks;
+    std::deque<std::tuple<MObject*, irr::scene::IMesh*>> m_subtractionResults;
     std::mutex m_taskQueueMutex;
     std::mutex m_resultQueueMutex;
-    std::thread m_subtractor;
+    std::thread m_subtractor1;
+    std::thread m_subtractor2;
     std::atomic<bool> m_done;
 
     class wall_custom : public voro::wall
