@@ -10,6 +10,8 @@
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <atomic>
+#include <mutex>
 
 namespace gg {
 
@@ -19,6 +21,8 @@ public:
     inline btRigidBody* getRigid() { return m_rigidBody.get(); }
     inline irr::scene::ISceneNode* getNode() { return m_irrSceneNode; }
     enum class Material {BUILDING, DEBREE, SHIP, SHOT, GROUND, DUST};
+    std::atomic<int> m_version;
+    std::mutex m_mutex;
     inline Material getMaterial() { return m_material; }
     inline bool isEmpty() { return m_empty; }
     inline bool isDeleted() { return m_deleted; }
@@ -51,6 +55,7 @@ public:
     {
         m_empty = m_rigidBody == nullptr;
         m_deleted = false;
+        m_version.store(0);
     }
 
     MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, Material mat) :
@@ -60,6 +65,7 @@ public:
     {
         m_empty = m_rigidBody == nullptr;
         m_deleted = false;
+        m_version.store(0);
     }
 
     MObject (MObject&& newObj)
@@ -68,6 +74,7 @@ public:
         m_irrSceneNode = newObj.m_irrSceneNode;
         m_material = newObj.m_material;
         m_deleted = newObj.m_deleted;
+        m_version.store(0);
     }
 
     MObject (MObject&) = delete;

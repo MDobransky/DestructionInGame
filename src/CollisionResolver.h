@@ -12,6 +12,11 @@
 #include <cstdlib>
 #include <utility>
 #include <vector>
+#include <thread>
+#include <future>
+#include <mutex>
+#include <queue>
+#include <atomic>
 
 namespace gg {
 
@@ -25,12 +30,19 @@ public:
 private:
     void resolveCollision(MObject* object, btVector3 point, btVector3 from, btScalar impulse, MObject::Material other_object);
     void generateDebree(irr::scene::IMesh*, btVector3 point, btVector3 impulse, MObject::Material);
+    void meshSubtractor();
+    void subtractionApplier();
     irr::IrrlichtDevice* m_irrDevice;
     btDiscreteDynamicsWorld* m_btWorld;
     MObjectCreator* m_objectCreator;
     std::vector<std::unique_ptr<MObject>>* m_objects;
     std::vector<MObject*> m_toDelete;
-
+    std::queue<std::tuple<MObject*, irr::scene::IMesh*, irr::core::vector3df>> m_subtractionTasks;
+    std::queue<std::tuple<MObject*, irr::scene::IMesh*>> m_subtractionResults;
+    std::mutex m_taskQueueMutex;
+    std::mutex m_resultQueueMutex;
+    std::thread m_subtractor;
+    std::atomic<bool> m_done;
 
     class wall_custom : public voro::wall
     {

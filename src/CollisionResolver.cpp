@@ -31,11 +31,14 @@ gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice* irrDev, btDiscreteDyn
       m_objectCreator(creator),
       m_objects(objs)
 {
+    m_done.store(false);
+    m_subtractor = std::move(std::thread([this] { meshSubtractor(); }));
 }
 
 gg::MCollisionResolver::~MCollisionResolver()
 {
-
+    m_done.store(true);
+    m_subtractor.join();
 }
 
 void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btVector3 from, btScalar impulse, MObject::Material other)
@@ -74,32 +77,35 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
                 con.compute_cell(c,loop);
                 IMesh* mesh = gg::MeshManipulators::convertMesh(c);
 
-           generateDebree(mesh,point,(from-point)*3, obj->getMaterial());
+            generateDebree(mesh,point,(from-point)*3, obj->getMaterial());
 
-           try
-           {
-               IMesh* new_mesh = MeshManipulators::subtractMesh(static_cast<IMeshSceneNode*>(obj->getNode())->getMesh(), mesh, vector3df(loop.x(),loop.y(),loop.z()) - obj->getNode()->getPosition());
-
-               if(new_mesh)
-               {
-                   IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
-                   Node->setMesh(new_mesh);
-                   Node->setMaterialType(EMT_SOLID);
-                   Node->setMaterialFlag(EMF_LIGHTING, 0);
-                   Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-                   btRigidBody* body = obj->getRigid();
-                   delete body->getCollisionShape();
-                   btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
-                   Shape->setMargin( 0.05f );
-                   body->setCollisionShape(Shape);
-               }
-               else
-               {
-                   m_btWorld->removeCollisionObject(obj->getRigid());
-                   obj->removeNode();
-                   obj->setDeleted();
-               }
-           }
+            try
+            {
+                //IMesh* new_mesh = MeshManipulators::subtractMesh(static_cast<IMeshSceneNode*>(obj->getNode())->getMesh(), mesh, vector3df(loop.x(),loop.y(),loop.z()) - obj->getNode()->getPosition());
+                {
+                    std::lock_guard<std::mutex> lock (m_taskQueueMutex);
+                    //m_subtractionTasks.push(std::make_tuple(obj, mesh, vector3df(loop.x(),loop.y(),loop.z()) - obj->getNode()->getPosition()));
+                }
+               /* if(new_mesh)
+                {
+                    IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
+                    Node->setMesh(new_mesh);
+                    Node->setMaterialType(EMT_SOLID);
+                    Node->setMaterialFlag(EMF_LIGHTING, 0);
+                    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+                    btRigidBody* body = obj->getRigid();
+                    delete body->getCollisionShape();
+                    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+                    Shape->setMargin( 0.05f );
+                    body->setCollisionShape(Shape);
+                }
+                else
+                {
+                    m_btWorld->removeCollisionObject(obj->getRigid());
+                    obj->removeNode();
+                    obj->setDeleted();
+                }*/
+            }
            catch(...)
            {
                std::cout << "FAILED\n";
@@ -117,6 +123,80 @@ void gg::MCollisionResolver::generateDebree(IMesh* mesh, btVector3 point, btVect
     m_objects->push_back(std::unique_ptr<MObject>(fragment));
     m_btWorld->addRigidBody(fragment->getRigid());
     fragment->getRigid()->applyImpulse(impulse, point);
+}
+
+void gg::MCollisionResolver::meshSubtractor()
+{
+    MObject* obj;
+    IMesh* obj_mesh;
+    IMesh* mesh;
+    vector3df position;
+    int version;
+    std::unique_lock<std::mutex> taskLock(m_taskQueueMutex, std::defer_lock);
+    while(!m_done)
+    {
+        taskLock.lock();
+        if(m_subtractionTasks.size() > 0)
+        {
+            std::tie(obj, mesh, position) = m_subtractionTasks.front();
+            m_subtractionTasks.pop();
+            taskLock.unlock();
+            {
+                std::lock_guard<std::mutex> objlock(obj->m_mutex);
+                obj_mesh = static_cast<IMeshSceneNode*>(obj->getNode())->getMesh();
+                version = obj->m_version;
+            }
+            IMesh* new_mesh = MeshManipulators::subtractMesh(obj_mesh, mesh, position);
+
+            std::lock_guard<std::mutex> objlock(obj->m_mutex);
+           // if(version == obj->m_version)
+            {
+                std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
+                m_subtractionResults.push(std::make_tuple(obj, new_mesh));
+            }
+        }
+        else
+        {
+            taskLock.unlock();
+        }
+    }
+}
+
+void gg::MCollisionResolver::subtractionApplier()
+{
+
+    MObject* obj = NULL;
+    IMesh* new_mesh = NULL;
+
+    {
+        std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
+        if(m_subtractionResults.size() > 0)
+        {
+            std::tie(obj, new_mesh) = m_subtractionResults.front();
+            m_subtractionResults.pop();
+        }
+    }
+    if(new_mesh)
+    {
+        std::lock_guard<std::mutex> objLock(obj->m_mutex);
+        IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
+        Node->setMesh(new_mesh);
+        Node->setMaterialType(EMT_SOLID);
+        Node->setMaterialFlag(EMF_LIGHTING, 0);
+        Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+        btRigidBody* body = obj->getRigid();
+        delete body->getCollisionShape();
+        btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+        Shape->setMargin( 0.05f );
+        body->setCollisionShape(Shape);
+        obj->m_version++;
+    }
+    else
+    {
+        m_btWorld->removeCollisionObject(obj->getRigid());
+        obj->removeNode();
+        obj->setDeleted();
+    }
 }
 
 bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3 point,btVector3 from)
@@ -180,6 +260,7 @@ void gg::MCollisionResolver::resolveAll()
             }
         }
     }
+    subtractionApplier();
 }
 
 //DUST GENERATOR

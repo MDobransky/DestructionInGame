@@ -34,11 +34,12 @@ gg::MGame::MGame()
 
 gg::MGame::~MGame()
 {
-    delete m_dispatcher;
-    delete m_collisionConfiguration;
-    delete m_broadPhase;
-    delete m_solver;
+    //delete m_dispatcher;
+    //delete m_collisionConfiguration;
+    //delete m_broadPhase;
+    //delete m_solver;
     delete m_btWorld;
+
 }
 
 void gg::MGame::run(bool debug, bool gravity)
