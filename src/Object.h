@@ -3,30 +3,42 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#include "MeshManipulators.h"
+
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
 #include <btBulletDynamicsCommon.h>
 
+#include <CGAL/Nef_polyhedron_3.h>
+#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+
 #include <vector>
 #include <memory>
 #include <iostream>
-#include <atomic>
 #include <mutex>
 
 namespace gg {
 
 class MObject
 {
+    typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
+    typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
+    typedef Polyhedron::HalfedgeDS HalfedgeDS;
+    typedef CGAL::Nef_polyhedron_3<Kernel> Nef_polyhedron;
+
 public:
     inline btRigidBody* getRigid() { return m_rigidBody.get(); }
     inline irr::scene::ISceneNode* getNode() { return m_irrSceneNode; }
     enum class Material {BUILDING, DEBREE, SHIP, SHOT, GROUND, DUST};
-    std::atomic<int> m_version;
     std::mutex m_mutex;
+
     inline Material getMaterial() { return m_material; }
     inline bool isEmpty() { return m_empty; }
     inline bool isDeleted() { return m_deleted; }
     inline void setDeleted() { m_deleted = true; }
+    inline bool isMesh() { return m_isMesh; }
+    inline Nef_polyhedron& getPolyhedron() { return m_polyhedron; }
+    inline void setPolyhedron(Nef_polyhedron nef) { m_polyhedron = nef; }
     inline void removeNode()
     {
         if(m_irrSceneNode)
@@ -49,23 +61,31 @@ public:
 
     MObject () : m_empty(true), m_deleted(false) {}
 
-    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn) :
-        m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
-        m_irrSceneNode(sn)
-    {
-        m_empty = m_rigidBody == nullptr;
-        m_deleted = false;
-        m_version.store(0);
-    }
-
-    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, Material mat) :
+    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, bool mesh = false) :
         m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
         m_irrSceneNode(sn),
-        m_material(mat)
+        m_isMesh(mesh)
     {
         m_empty = m_rigidBody == nullptr;
         m_deleted = false;
-        m_version.store(0);
+        if(m_isMesh)
+        {
+            m_polyhedron = std::move(MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode*>(sn)->getMesh()));
+        }
+    }
+
+    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, Material mat, bool mesh = true) :
+        m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
+        m_irrSceneNode(sn),
+        m_material(mat),
+        m_isMesh(mesh)
+    {
+        m_empty = m_rigidBody == nullptr;
+        m_deleted = false;
+        if(m_isMesh)
+        {
+            m_polyhedron = std::move(MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode*>(sn)->getMesh()));
+        }
     }
 
     MObject (MObject&& newObj)
@@ -74,7 +94,7 @@ public:
         m_irrSceneNode = newObj.m_irrSceneNode;
         m_material = newObj.m_material;
         m_deleted = newObj.m_deleted;
-        m_version.store(0);
+        m_polyhedron = std::move(newObj.m_polyhedron);
     }
 
     MObject (MObject&) = delete;
@@ -86,6 +106,8 @@ private:
     irr::scene::ISceneNode* m_irrSceneNode;
     bool m_empty, m_deleted = false;
     Material m_material;
+    bool m_isMesh = false;
+    Nef_polyhedron m_polyhedron;
 };
 
 }

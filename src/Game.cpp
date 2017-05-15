@@ -44,8 +44,17 @@ gg::MGame::~MGame()
 
 void gg::MGame::run(bool debug, bool gravity)
 {
+
+    ITexture* images = m_irrDriver->getTexture("media/loading.jpg");
+    m_irrDriver->beginScene(true, true, SColor(255, 20, 0, 0));
+    m_irrScene->drawAll();
+    m_irrDriver->draw2DImage(images, core::position2d<s32>(0,0),
+                    core::rect<s32>(0,0,1920,1080), 0,
+                    video::SColor(255,255,255,255), false);
+    m_irrDriver->endScene();
+
     MLoader loader(m_irrDevice.get());
-    m_objects = loader.load("media/levels/1");
+    m_objects = loader.load("media/levels/3");
     for(size_t i = 0; i < m_objects.size(); i++)
     {
         //ship

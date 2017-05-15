@@ -1,4 +1,4 @@
-skybox/top.jpg;skybox/bottom.jpg;skybox/front.jpg;skybox/back.jpg;skybox/right.jpg;skybox/left.jpg
-;rock_texture.jpg;D;0;-15.0;0;0;0;0;500;10;500;0
+skybox/topspace.jpg;skybox/bottomspace.jpg;skybox/frontspace.jpg;skybox/backspace.jpg;skybox/rightspace.jpg;skybox/leftspace.jpg
+;;D;0;-15.0;0;0;0;0;0;0;0;0
 fighter.3ds;;N;0;0;0;0;0;0;0.7;0.7;0.7;5.5
 klcc_lores.obj;klccbake.jpg;C;0;-10;-40;0;0;0;0.1;0.1;0.1;0

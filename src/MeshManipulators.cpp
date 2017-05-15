@@ -3,6 +3,7 @@
 #include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
 #include <CGAL/Inverse_index.h>
 #include <map>
+#include <iostream>
 
 using namespace irr;
 using namespace core;
@@ -12,11 +13,9 @@ using namespace io;
 using namespace gui;
 using namespace CGAL;
 
-namespace
-{
-    IMesh* convertPolyToMesh(CGAL::Polyhedron_3<CGAL::Exact_predicates_exact_constructions_kernel> &poly)
+
+IMesh* gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron& poly)
     {
-        typedef Polyhedron_3<Exact_predicates_exact_constructions_kernel> Polyhedron;
         Polygon_mesh_processing::triangulate_faces(poly,CGAL::Polygon_mesh_processing::parameters::use_delaunay_triangulation(true));
 
         if(poly.size_of_vertices() == 0)
@@ -58,7 +57,13 @@ namespace
             i++;
         }
         return mesh;
-    }
+}
+
+IMesh*gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Nef_polyhedron& poly)
+{
+    Polyhedron res;
+    poly.convert_to_polyhedron(res);
+    return convertPolyToMesh(res);
 }
 
 btBvhTriangleMeshShape* gg::MeshManipulators::convertMesh(IMeshSceneNode * node)
@@ -155,6 +160,37 @@ IMesh* gg::MeshManipulators::subtractMesh(IMesh *from, IMesh *what, vector3df po
     return NULL;
 }
 
+gg::MeshManipulators::Nef_polyhedron gg::MeshManipulators::subtractMesh(gg::MeshManipulators::Nef_polyhedron& nef, IMesh* what, vector3df position)
+{
+    if(what)
+    {
+        Polyhedron poly_what;
+        PolyhedronBuilder mesh_what(what, position);
+        poly_what.delegate(mesh_what);
+
+        if(poly_what.is_closed())
+        {
+            Nef_polyhedron N2(poly_what);
+            Nef_polyhedron N3(nef-N2);
+            return std::move(N3);
+        }
+    }
+    return std::move(nef);
+}
+
+gg::MeshManipulators::Nef_polyhedron gg::MeshManipulators::makeNefPolyhedron(IMesh* obj)
+{
+    if(obj)
+    {
+        Polyhedron poly_mesh;
+        PolyhedronBuilder mesh_build(obj);
+        poly_mesh.delegate(mesh_build);
+        Nef_polyhedron N(poly_mesh);
+        return std::move(N);
+    }
+    return Nef_polyhedron();
+}
+
 void gg::MeshManipulators::PolyhedronBuilder::operator()(gg::MeshManipulators::HalfedgeDS &hds)
 {
     CGAL::Polyhedron_incremental_builder_3<HalfedgeDS> B(hds, true);
@@ -169,7 +205,6 @@ void gg::MeshManipulators::PolyhedronBuilder::operator()(gg::MeshManipulators::H
         n_faces += meshBuffer->getIndexCount()/3;
         n_vertices += meshBuffer->getVertexCount();
     }
-
     B.begin_surface(n_vertices, n_faces);
     int v = 0;
     for (irr::u32 j = 0; j < m_mesh->getMeshBufferCount(); j++)

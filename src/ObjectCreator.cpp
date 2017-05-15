@@ -70,7 +70,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(std::vector<std::string>&& 
 
     MObject::Material material = MObject::Material::BUILDING;
 
-    MObject* obj = new MObject(rigidBody, Node, material);
+    MObject* obj = new MObject(rigidBody, Node, material, true);
     // Store a pointer to the irrlicht node so we can update it later
     rigidBody->setUserPointer((void *)(obj));
 
@@ -127,7 +127,7 @@ gg::MObject* gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string>&&
 
     MObject::Material material = MObject::Material::SHIP;
 
-    MObject* obj = new MObject(rigidBody, Node, material);
+    MObject* obj = new MObject(rigidBody, Node, material, false);
     rigidBody->setUserPointer((void *)(obj));
 
     return obj;
@@ -185,7 +185,7 @@ gg::MObject* gg::MObjectCreator::createSolidGround(std::vector<std::string>&& it
     btRigidBody *RigidBody = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
     RigidBody->setGravity(btVector3(0,0,0));
 
-    MObject * obj = new MObject(RigidBody, Node, MObject::Material::GROUND);
+    MObject * obj = new MObject(RigidBody, Node, MObject::Material::GROUND, false);
 
     RigidBody->setUserPointer((void *)(obj));
 
@@ -215,7 +215,7 @@ gg::MObject* gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
     btRigidBody *bullet = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
     bullet->applyImpulse(impulse, position);
 
-    MObject* obj = new MObject(bullet, Node, MObject::Material::SHOT);
+    MObject* obj = new MObject(bullet, Node, MObject::Material::SHOT, false);
 
     bullet->setUserPointer((void *)(obj));
 
@@ -249,7 +249,7 @@ gg::MObject* gg::MObjectCreator::createMeshRigidBody(IMesh* mesh, btVector3 posi
 
     btRigidBody *rigidBody = new btRigidBody(mass, motionState, Shape, localInertia);
 
-    MObject* fragment = new MObject(rigidBody, Node, material);
+    MObject* fragment = new MObject(rigidBody, Node, material, true);
     rigidBody->setUserPointer((void *)(fragment));
 
     return fragment;

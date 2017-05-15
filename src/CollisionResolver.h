@@ -3,6 +3,7 @@
 
 #include "Object.h"
 #include "ObjectCreator.h"
+#include "MeshManipulators.h"
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
@@ -22,6 +23,7 @@ namespace gg {
 
 class MCollisionResolver
 {
+
 public:
     MCollisionResolver(irr::IrrlichtDevice*, btDiscreteDynamicsWorld*, MObjectCreator*, std::vector<std::unique_ptr<MObject>>*);
     ~MCollisionResolver();
@@ -38,7 +40,7 @@ private:
     std::vector<std::unique_ptr<MObject>>* m_objects;
     std::vector<MObject*> m_toDelete;
     std::deque<std::tuple<MObject*, irr::scene::IMesh*, irr::core::vector3df>> m_subtractionTasks;
-    std::deque<std::tuple<MObject*, irr::scene::IMesh*>> m_subtractionResults;
+    std::deque<std::tuple<MObject*, MeshManipulators::Nef_polyhedron, irr::scene::IMesh*>> m_subtractionResults;
     std::mutex m_taskQueueMutex;
     std::mutex m_resultQueueMutex;
     std::thread m_subtractor1;
