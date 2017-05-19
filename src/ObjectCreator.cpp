@@ -60,7 +60,7 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
     // Create the shape
-    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+    btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
     Shape->setMargin(0.05f);
 
     // Add mass
@@ -213,9 +213,10 @@ gg::MObject *gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
     btDefaultMotionState *MotionState = new btDefaultMotionState(Transform);
 
     btCollisionShape *Shape = new btSphereShape(0.2f);
+    Shape->setMargin(0.1);
 
     btVector3 LocalInertia;
-    btScalar Mass = 750.0f;
+    btScalar Mass = 1.0f;
     Shape->calculateLocalInertia(Mass, LocalInertia);
 
     btRigidBody *bullet = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
@@ -249,7 +250,7 @@ gg::MObject *
 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
-    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+    btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
     Shape->setMargin(0.05f);
 
     btVector3 localInertia;

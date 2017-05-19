@@ -133,7 +133,7 @@ void gg::MCollisionResolver::meshSubtractor()
                     else
                     {
                         m_subtractionResults.push_back(
-                                    std::make_tuple(new MObject(NULL,NULL, obj->getMaterial()),
+                                    std::make_tuple(new MObject(NULL, NULL, obj->getMaterial(), false),
                                                     std::move(newNefPolyhedrons[i]), new_mesh));
                     }
                 }
@@ -170,15 +170,15 @@ void gg::MCollisionResolver::subtractionApplier()
     {
         std::lock_guard<std::mutex> objLock(obj->m_mutex);
         obj->setPolyhedron(std::move(newPoly));
-        IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
-        Node->setMesh(new_mesh);
-        Node->setMaterialType(EMT_SOLID);
-        Node->setMaterialFlag(EMF_LIGHTING, 0);
-        Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
         if(obj->getRigid())
         {
             btRigidBody* body = obj->getRigid();
+            IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
+            Node->setMesh(new_mesh);
+            Node->setMaterialType(EMT_SOLID);
+            Node->setMaterialFlag(EMF_LIGHTING, 0);
+            Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
             btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
             Shape->setMargin(0.05f);
             delete body->getCollisionShape();
@@ -189,7 +189,10 @@ void gg::MCollisionResolver::subtractionApplier()
             obj = m_objectCreator->createMeshRigidBody(new_mesh, btVector3(0,0,0), 10, obj->getMaterial(), false);
             obj->setPolyhedron(newPoly);
             m_objects->push_back(std::unique_ptr<MObject>(obj));
+            m_btWorld->addRigidBody(obj->getRigid());
         }
+
+
     }
 }
 

@@ -283,7 +283,7 @@ void gg::MGame::shoot()
 {
     btVector3 position =
             m_btShip->getCenterOfMassPosition() + m_btShip->getWorldTransform().getBasis() * btVector3(0, -0.1, -0.5);
-    btVector3 impulse = m_btShip->getWorldTransform().getBasis() * btVector3(0, 0, -75000);
+    btVector3 impulse = m_btShip->getWorldTransform().getBasis() * btVector3(0, 0, -75);
     MObject *shot = m_objectCreator->shoot(position, impulse);
     m_btWorld->addRigidBody(shot->getRigid());
     shot->getRigid()->setGravity(btVector3(0, 0, 0));

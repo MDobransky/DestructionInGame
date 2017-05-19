@@ -1,7 +1,4 @@
 skybox/top.jpg;skybox/bottom.jpg;skybox/front.jpg;skybox/back.jpg;skybox/right.jpg;skybox/left.jpg
 ;rubble.jpg;D;0;-15.0;0;0;0;0;500;10;500;0
 fighter.3ds;;N;0;0;0;0;0;0;0.7;0.7;0.7;5.5
-klcc_lores.obj;klccbake.jpg;C;-10;-10;-40;0;0;0;0.1;0.1;0.1;0
 EmpireState_lp.obj;;C;10;-10;-30;0;0;0;0.5;0.5;0.5;0
-building3.3DS;gray_building.jpg;S;5;-10;-65;0;0;0;6;6;6;0
-
