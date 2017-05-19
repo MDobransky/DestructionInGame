@@ -17,98 +17,134 @@
 #include <iostream>
 #include <mutex>
 
-namespace gg {
-
-class MObject
+namespace gg
 {
-    typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
-    typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
-    typedef Polyhedron::HalfedgeDS HalfedgeDS;
-    typedef CGAL::Nef_polyhedron_3<Kernel> Nef_polyhedron;
 
-public:
-    inline btRigidBody* getRigid() { return m_rigidBody.get(); }
-    inline irr::scene::ISceneNode* getNode() { return m_irrSceneNode; }
-    enum class Material {BUILDING, DEBREE, SHIP, SHOT, GROUND, DUST};
-    std::mutex m_mutex;
-
-    inline Material getMaterial() { return m_material; }
-    inline bool isEmpty() { return m_empty; }
-    inline bool isDeleted() { return m_deleted; }
-    inline void setDeleted() { m_deleted = true; }
-    inline bool isMesh() { return m_isMesh; }
-    inline Nef_polyhedron& getPolyhedron() { return m_polyhedron; }
-    inline void setPolyhedron(Nef_polyhedron nef) { m_polyhedron = nef; }
-    inline void removeNode()
+    class MObject
     {
-        if(m_irrSceneNode)
+        typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
+        typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
+        typedef Polyhedron::HalfedgeDS HalfedgeDS;
+        typedef CGAL::Nef_polyhedron_3<Kernel> Nef_polyhedron;
+
+    public:
+        inline btRigidBody *getRigid()
+        { return m_rigidBody.get(); }
+
+        inline irr::scene::ISceneNode *getNode()
+        { return m_irrSceneNode; }
+
+        enum class Material
         {
-            m_irrSceneNode->remove();
-            m_irrSceneNode = 0;
-        }
-    }
+            BUILDING, DEBREE, SHIP, SHOT, GROUND, DUST
+        };
+        std::mutex m_mutex;
 
-    ~MObject()
-    {
-        if(m_rigidBody.get() != nullptr)
+        inline Material getMaterial()
+        { return m_material; }
+
+        inline bool isEmpty()
+        { return m_empty; }
+
+        inline bool isDeleted()
+        { return m_deleted; }
+
+        inline void setDeleted()
+        { m_deleted = true; }
+
+        inline bool isMesh()
+        { return m_isMesh; }
+
+        inline Nef_polyhedron &getPolyhedron()
+        { return m_polyhedron; }
+
+        inline void setPolyhedron(Nef_polyhedron nef)
         {
-            if(m_rigidBody->getMotionState() != nullptr)
-                delete m_rigidBody->getMotionState();
-            if(m_rigidBody->getCollisionShape() != nullptr)
-                delete m_rigidBody->getCollisionShape();
+            m_polyhedron = std::move(nef);
+            m_isMesh = true;
         }
-    }
 
-    MObject () : m_empty(true), m_deleted(false) {}
-
-    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, bool mesh = false) :
-        m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
-        m_irrSceneNode(sn),
-        m_isMesh(mesh)
-    {
-        m_empty = m_rigidBody == nullptr;
-        m_deleted = false;
-        if(m_isMesh)
+        inline void removeNode()
         {
-            m_polyhedron = std::move(MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode*>(sn)->getMesh()));
+            if(m_irrSceneNode)
+            {
+                m_irrSceneNode->remove();
+                m_irrSceneNode = 0;
+            }
         }
-    }
 
-    MObject (btRigidBody* rb, irr::scene::ISceneNode* sn, Material mat, bool mesh = true) :
-        m_rigidBody(std::unique_ptr<btRigidBody>(rb)),
-        m_irrSceneNode(sn),
-        m_material(mat),
-        m_isMesh(mesh)
-    {
-        m_empty = m_rigidBody == nullptr;
-        m_deleted = false;
-        if(m_isMesh)
+        ~MObject()
         {
-            m_polyhedron = std::move(MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode*>(sn)->getMesh()));
+            if(m_rigidBody.get() != nullptr)
+            {
+                if(m_rigidBody->getMotionState() != nullptr)
+                {
+                    delete m_rigidBody->getMotionState();
+                }
+                if(m_rigidBody->getCollisionShape() != nullptr)
+                {
+                    delete m_rigidBody->getCollisionShape();
+                }
+            }
         }
-    }
 
-    MObject (MObject&& newObj)
-    {
-        m_rigidBody = std::move(newObj.m_rigidBody);
-        m_irrSceneNode = newObj.m_irrSceneNode;
-        m_material = newObj.m_material;
-        m_deleted = newObj.m_deleted;
-        m_polyhedron = std::move(newObj.m_polyhedron);
-    }
+        MObject() : m_empty(true), m_deleted(false)
+        {}
 
-    MObject (MObject&) = delete;
-    MObject& operator= (MObject&&) = delete;
-    MObject&  operator= (const MObject&) = delete;
+        MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, bool mesh = false) : m_rigidBody(
+                std::unique_ptr<btRigidBody>(rb)), m_irrSceneNode(sn), m_isMesh(mesh)
+        {
+            m_empty = m_rigidBody == nullptr;
+            m_deleted = false;
+            if(m_isMesh)
+            {
+                m_polyhedron = std::move(
+                        MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode *>(sn)->getMesh()));
+            }
+        }
 
-private:
-    std::unique_ptr<btRigidBody> m_rigidBody;
-    irr::scene::ISceneNode* m_irrSceneNode;
-    bool m_empty, m_deleted = false;
-    Material m_material;
-    bool m_isMesh = false;
-    Nef_polyhedron m_polyhedron;
-};
+        MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Material mat, bool mesh = true) : m_rigidBody(
+                std::unique_ptr<btRigidBody>(rb)), m_irrSceneNode(sn), m_material(mat), m_isMesh(mesh)
+        {
+            m_empty = m_rigidBody == nullptr;
+            m_deleted = false;
+            if(m_isMesh)
+            {
+                m_polyhedron = std::move(
+                        MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode *>(sn)->getMesh()));
+            }
+        }
+
+        MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Material mat, Nef_polyhedron &&nef) : m_rigidBody(
+                std::unique_ptr<btRigidBody>(rb)), m_irrSceneNode(sn), m_material(mat), m_polyhedron(nef)
+        {
+            m_empty = m_rigidBody == nullptr;
+            m_deleted = false;
+        }
+
+        MObject(MObject &&other)
+        {
+            m_rigidBody = std::move(other.m_rigidBody);
+            m_irrSceneNode = other.m_irrSceneNode;
+            m_material = other.m_material;
+            m_deleted = other.m_deleted;
+            m_polyhedron = std::move(other.m_polyhedron);
+        }
+
+        MObject(MObject &) = delete;
+
+        MObject &operator=(MObject &&) = delete;
+
+        MObject &operator=(const MObject &) = delete;
+
+    private:
+        std::unique_ptr<btRigidBody> m_rigidBody;
+        irr::scene::ISceneNode *m_irrSceneNode;
+        bool m_empty, m_deleted = false;
+        Material m_material;
+        bool m_isMesh = false;
+        Nef_polyhedron m_polyhedron;
+    };
 
 }
 #endif

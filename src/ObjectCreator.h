@@ -16,22 +16,30 @@
 #include <string>
 #include <vector>
 
-namespace gg {
-
-class MObjectCreator
+namespace gg
 {
-public:
-    MObjectCreator(irr::IrrlichtDevice*);
-    MObject* createMeshRigidBody(std::vector<std::string>&&);
-    MObject* createBoxedRigidBody(std::vector<std::string>&&);
-    MObject* createSolidGround(std::vector<std::string>&&);
-    MObject* shoot(btVector3 position, btVector3 impulse);
-    MObject* createMeshRigidBody(irr::scene::IMesh* mesh, btVector3 position, btScalar mass, MObject::Material material);
 
-private:
-    irr::IrrlichtDevice* m_irrDevice;
-    const std::string m_media = "media/";
-};
+    class MObjectCreator
+    {
+    public:
+        MObjectCreator(irr::IrrlichtDevice *);
+
+        MObject *createMeshRigidBody(std::vector<std::string> &&);
+
+        MObject *createBoxedRigidBody(std::vector<std::string> &&);
+
+        MObject *createSolidGround(std::vector<std::string> &&);
+
+        MObject *shoot(btVector3 position, btVector3 impulse);
+
+        MObject *
+            createMeshRigidBody(irr::scene::IMesh *mesh, btVector3 position, btScalar mass,
+                                MObject::Material material, bool make_nef);
+
+    private:
+        irr::IrrlichtDevice *m_irrDevice;
+        const std::string m_media = "media/";
+    };
 
 }
 #endif // OBJECTCREATOR_H

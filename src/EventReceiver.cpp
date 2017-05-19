@@ -9,7 +9,7 @@ using namespace gui;
 
 bool gg::MEventReceiver::OnEvent(const SEvent &event)
 {
-    if (event.EventType == EET_KEY_INPUT_EVENT)
+    if(event.EventType == EET_KEY_INPUT_EVENT)
     {
         for(int i = 0; i < irr::KEY_KEY_CODES_COUNT; i++)
         {

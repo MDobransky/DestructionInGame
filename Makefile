@@ -1,6 +1,6 @@
 CXX= g++ -std=c++14 -g
 LD= g++ -std=c++14
-CXXFLAGS= -Wall -O3 -pedantic -frounding-math
+CXXFLAGS= -Wall -pedantic -frounding-math
 INC=-I/usr/include/bullet  -I/usr/include/irrlicht -I/usr/include/bullet/LinearMath
 SRCDIR=src/
 BUILDDIR=build/

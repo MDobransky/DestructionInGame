@@ -14,23 +14,27 @@
 #include <tuple>
 #include <memory>
 
-namespace gg {
-
-class MLoader
+namespace gg
 {
-public:
-    MLoader(irr::IrrlichtDevice*);
-    std::vector<std::unique_ptr<gg::MObject>> load(std::string);
 
-private:
-    const std::string m_media = "media/";
-    bool loadSkybox(std::vector<std::string>&&);
-    std::vector<std::string> split(std::stringstream&&);
+    class MLoader
+    {
+    public:
+        MLoader(irr::IrrlichtDevice *);
 
-    irr::IrrlichtDevice* m_irrDevice;
-    std::vector<std::unique_ptr<gg::MObject>> m_objects;
-    std::unique_ptr<MObjectCreator> m_objectCreator;
-};
+        std::vector<std::unique_ptr<gg::MObject>> load(std::string);
+
+    private:
+        const std::string m_media = "media/";
+
+        bool loadSkybox(std::vector<std::string> &&);
+
+        std::vector<std::string> split(std::stringstream &&);
+
+        irr::IrrlichtDevice *m_irrDevice;
+        std::vector<std::unique_ptr<gg::MObject>> m_objects;
+        std::unique_ptr<MObjectCreator> m_objectCreator;
+    };
 
 }
 

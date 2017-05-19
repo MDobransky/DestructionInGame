@@ -8,6 +8,7 @@ using namespace video;
 using namespace io;
 using namespace gui;
 
+
 #define debug
 #ifdef debug
 std::ostream& operator<<(std::ostream& os, const irr::core::vector3df& v)
@@ -42,7 +43,8 @@ gg::MCollisionResolver::~MCollisionResolver()
     m_subtractor2.join();
 }
 
-void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btVector3 from, btScalar impulse, MObject::Material other)
+void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btVector3 from,
+                                              btScalar impulse, MObject::Material other)
 {
     MObject::Material material = obj->getMaterial();
     if(material == MObject::Material::GROUND)
@@ -76,7 +78,8 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
 
             generateDebree(mesh,point,(from-point)*3, obj->getMaterial());
             std::lock_guard<std::mutex> lock (m_taskQueueMutex);
-            m_subtractionTasks.push_back(std::make_tuple(obj, mesh, vector3df(loop.x(),loop.y(),loop.z()) - obj->getNode()->getPosition()));
+            vector3df position(vector3df(loop.x(),loop.y(),loop.z()) - obj->getNode()->getPosition());
+            m_subtractionTasks.push_back(std::make_tuple(obj, mesh, position));
         }
     }
 }
@@ -85,11 +88,11 @@ void gg::MCollisionResolver::generateDebree(IMesh* mesh, btVector3 point, btVect
 {
 
     IMesh* fragment_mesh = m_irrDevice->getSceneManager()->getMeshManipulator()->createMeshUniquePrimitives(mesh);
-    //m_irrDevice->getSceneManager()->getMeshManipulator()->scale(fragment_mesh,vector3df(0.5,0.5,0.5));
+   // m_irrDevice->getSceneManager()->getMeshManipulator()->scale(fragment_mesh,vector3df(0.5,0.5,0.5));
     //MObject* fragment = m_objectCreator->createMeshRigidBody(fragment_mesh, point, 30, material);
-    //m_objects->push_back(std::unique_ptr<MObject>(fragment));
-    //m_btWorld->addRigidBody(fragment->getRigid());
-    //fragment->getRigid()->applyImpulse(impulse, point);
+   // m_objects->push_back(std::unique_ptr<MObject>(fragment));
+   //m_btWorld->addRigidBody(fragment->getRigid());
+   // fragment->getRigid()->applyImpulse(impulse, point);
 }
 
 void gg::MCollisionResolver::meshSubtractor()
@@ -118,9 +121,22 @@ void gg::MCollisionResolver::meshSubtractor()
             try
             {
                 MeshManipulators::Nef_polyhedron newPoly = MeshManipulators::subtractMesh(*oldPoly, mesh, position);
-                IMesh* new_mesh = MeshManipulators::convertPolyToMesh(newPoly);
-                std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
-                m_subtractionResults.push_back(std::make_tuple(obj, std::move(newPoly), new_mesh));
+                std::vector<MeshManipulators::Nef_polyhedron> newNefPolyhedrons(std::move(MeshManipulators::splitPolyhedron(std::move(newPoly))));
+                for(size_t i = 0; i < newNefPolyhedrons.size(); i++)
+                {
+                    IMesh* new_mesh = MeshManipulators::convertPolyToMesh(newNefPolyhedrons[i]);
+                    std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
+                    if(i == 0)
+                    {
+                        m_subtractionResults.push_back(std::make_tuple(obj, std::move(newNefPolyhedrons[i]), new_mesh));
+                    }
+                    else
+                    {
+                        m_subtractionResults.push_back(
+                                    std::make_tuple(new MObject(NULL,NULL, obj->getMaterial()),
+                                                    std::move(newNefPolyhedrons[i]), new_mesh));
+                    }
+                }
             }
            catch(...)
            {
@@ -159,11 +175,21 @@ void gg::MCollisionResolver::subtractionApplier()
         Node->setMaterialType(EMT_SOLID);
         Node->setMaterialFlag(EMF_LIGHTING, 0);
         Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-        btRigidBody* body = obj->getRigid();
-        delete body->getCollisionShape();
-        btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
-        Shape->setMargin( 0.05f );
-        body->setCollisionShape(Shape);
+
+        if(obj->getRigid())
+        {
+            btRigidBody* body = obj->getRigid();
+            btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+            Shape->setMargin(0.05f);
+            delete body->getCollisionShape();
+            body->setCollisionShape(Shape);
+        }
+        else
+        {
+            obj = m_objectCreator->createMeshRigidBody(new_mesh, btVector3(0,0,0), 10, obj->getMaterial(), false);
+            obj->setPolyhedron(newPoly);
+            m_objects->push_back(std::unique_ptr<MObject>(obj));
+        }
     }
 }
 
