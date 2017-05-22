@@ -32,8 +32,8 @@ gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice* irrDev, btDiscreteDyn
       m_objects(objs)
 {
     m_done.store(false);
-    m_subtractor1 = std::move(std::thread([this] { meshSubtractor(); }));
-    m_subtractor2 = std::move(std::thread([this] { meshSubtractor(); }));
+   // m_subtractor1 = std::move(std::thread([this] { meshSubtractor(); }));
+   // m_subtractor2 = std::move(std::thread([this] { meshSubtractor(); }));
 }
 
 gg::MCollisionResolver::~MCollisionResolver()
@@ -44,22 +44,27 @@ gg::MCollisionResolver::~MCollisionResolver()
 }
 
 void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btVector3 from,
-                                              btScalar impulse, MObject::Material other)
+                                              btScalar impulse, MObject* other)
 {
+
     MObject::Material material = obj->getMaterial();
-    if(material == MObject::Material::GROUND)
+    if(other->isDeleted())
     {
-        //nothing
+        return;
     }
-    else if(material == MObject::Material::SHOT && impulse > 20)
+    else if(material == MObject::Material::GROUND)
     {
-        m_btWorld->removeCollisionObject(obj->getRigid());
-        obj->removeNode();
-        obj->setDeleted();
+        return;
     }
-    else if(material != MObject::Material::SHIP)
+    else if(material != MObject::Material::SHIP && impulse > 0 )
     {
-        if(obj->isMesh() && ((other != MObject::Material::GROUND && impulse > 0) || impulse > 200))
+        if(other->getMaterial() == MObject::Material::SHOT)
+        {
+            m_btWorld->removeCollisionObject(other->getRigid());
+            other->removeNode();
+            other->setDeleted();
+        }
+        if(obj->isMesh() && (other->getMaterial() != MObject::Material::GROUND || impulse > 200 || other->getMaterial() == MObject::Material::SHOT))
         {
             using namespace voro;
                 float cube_size = 2 + 2*0.2f;
@@ -77,9 +82,11 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
                 IMesh* mesh = gg::MeshManipulators::convertMesh(c);
 
             generateDebree(mesh,point,(from-point)*3, obj->getMaterial());
-            std::lock_guard<std::mutex> lock (m_taskQueueMutex);
+            //std::lock_guard<std::mutex> lock (m_taskQueueMutex);
             vector3df position(vector3df(loop.x(),loop.y(),loop.z()) - obj->getNode()->getPosition());
             m_subtractionTasks.push_back(std::make_tuple(obj, mesh, position));
+            meshSubtractor();
+            subtractionApplier();
         }
     }
 }
@@ -102,7 +109,7 @@ void gg::MCollisionResolver::meshSubtractor()
     vector3df position;
     MeshManipulators::Nef_polyhedron* oldPoly;
     std::unique_lock<std::mutex> taskLock(m_taskQueueMutex, std::defer_lock);
-    while(!m_done)
+    //while(!m_done)
     {
         taskLock.lock();
         if(m_subtractionTasks.size() > 0)
@@ -114,7 +121,7 @@ void gg::MCollisionResolver::meshSubtractor()
                 std::lock_guard<std::mutex> objlock(obj->m_mutex);
                 if(obj->isDeleted())
                 {
-                    continue;
+                  return;//  continue;
                 }
                 oldPoly = &obj->getPolyhedron();
             }
@@ -128,12 +135,14 @@ void gg::MCollisionResolver::meshSubtractor()
                     std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
                     if(i == 0)
                     {
-                        m_subtractionResults.push_back(std::make_tuple(obj, std::move(newNefPolyhedrons[i]), new_mesh));
+                        m_subtractionResults.push_back(std::make_tuple(obj, obj->getRigid()->getCenterOfMassPosition(),
+                                                                       std::move(newNefPolyhedrons[0]), new_mesh));
                     }
                     else
                     {
                         m_subtractionResults.push_back(
                                     std::make_tuple(new MObject(NULL, NULL, obj->getMaterial(), false),
+                                                    obj->getRigid()->getCenterOfMassPosition(),
                                                     std::move(newNefPolyhedrons[i]), new_mesh));
                     }
                 }
@@ -156,12 +165,13 @@ void gg::MCollisionResolver::subtractionApplier()
 
     MObject* obj = NULL;
     IMesh* new_mesh = NULL;
+    btVector3 position;
     MeshManipulators::Nef_polyhedron newPoly;
     {
         std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
         if(m_subtractionResults.size() > 0)
         {
-            std::tie(obj, newPoly, new_mesh) = m_subtractionResults.front();
+            std::tie(obj,position, newPoly, new_mesh) = m_subtractionResults.front();
             m_subtractionResults.pop_front();
         }
 
@@ -186,8 +196,13 @@ void gg::MCollisionResolver::subtractionApplier()
         }
         else
         {
-            obj = m_objectCreator->createMeshRigidBody(new_mesh, btVector3(0,0,0), 10, obj->getMaterial(), false);
+            obj = m_objectCreator->createMeshRigidBody(new_mesh, position, 10, obj->getMaterial(), false);
             obj->setPolyhedron(newPoly);
+            //btTransform tr;
+            //tr.setIdentity();
+            //vector3df center = static_cast<IMeshSceneNode*>(obj->getNode())->getMesh()->getBoundingBox().getCenter();
+            //tr.setOrigin(btVector3(center.X, center.Y, center.Z));
+            //obj->getRigid()->setCenterOfMassTransform(tr);
             m_objects->push_back(std::unique_ptr<MObject>(obj));
             m_btWorld->addRigidBody(obj->getRigid());
         }
@@ -249,11 +264,11 @@ void gg::MCollisionResolver::resolveAll()
 
             if(!objectA->isDeleted())
             {
-                resolveCollision(objectA, ptA, ptA-ptB, impulse, objectB->getMaterial());
+                resolveCollision(objectA, ptA, ptA-ptB, impulse, objectB);
             }
             if(!objectB->isDeleted())
             {
-                resolveCollision(objectB, ptB, ptB-ptA, impulse, objectA->getMaterial());
+                resolveCollision(objectB, ptB, ptB-ptA, impulse, objectA);
             }
         }
     }

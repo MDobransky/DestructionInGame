@@ -12,6 +12,8 @@
 #include <CGAL/Nef_polyhedron_3.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 
+#include <btHACDCompoundShape.h>
+
 #include <voro++/voro++.hh>
 
 #include <chrono>
@@ -38,7 +40,7 @@ namespace gg
 
         static irr::scene::IMesh *convertPolyToMesh(Nef_polyhedron &poly);
 
-        static btBvhTriangleMeshShape *convertMesh(irr::scene::IMeshSceneNode *);
+        static btCollisionShape *convertMesh(irr::scene::IMeshSceneNode *);
 
         static irr::scene::IMesh *convertMesh(voro::voronoicell &cell);
 

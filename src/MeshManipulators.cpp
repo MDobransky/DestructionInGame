@@ -59,6 +59,7 @@ IMesh *gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron 
         }
         i++;
     }
+    mesh->recalculateBoundingBox();
     return mesh;
 }
 
@@ -69,7 +70,7 @@ IMesh *gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Nef_polyhed
     return convertPolyToMesh(res);
 }
 
-btBvhTriangleMeshShape *gg::MeshManipulators::convertMesh(IMeshSceneNode *node)
+btCollisionShape *gg::MeshManipulators::convertMesh(IMeshSceneNode *node)
 {
     btTriangleMesh *btMesh = new btTriangleMesh();
 
@@ -88,7 +89,11 @@ btBvhTriangleMeshShape *gg::MeshManipulators::convertMesh(IMeshSceneNode *node)
                                 btVector3(point3.X, point3.Y, point3.Z));
         }
     }
-    return new btBvhTriangleMeshShape(btMesh, true);
+
+    btBvhTriangleMeshShape *sh = new btBvhTriangleMeshShape(btMesh, true);
+    btCollisionShape * compound = new btHACDCompoundShape(sh);
+    delete sh;
+    return compound;
 }
 
 IMesh *gg::MeshManipulators::convertMesh(voro::voronoicell &cell)

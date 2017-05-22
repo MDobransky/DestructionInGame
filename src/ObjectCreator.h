@@ -9,7 +9,6 @@
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
 #include <btBulletDynamicsCommon.h>
-#include "btHACDCompoundShape.h"
 #include <LinearMath/btAlignedObjectArray.h>
 #include <LinearMath/btConvexHullComputer.h>
 #include <LinearMath/btQuaternion.h>

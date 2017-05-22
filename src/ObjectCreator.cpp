@@ -60,7 +60,7 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
     // Create the shape
-    btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
+    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
     Shape->setMargin(0.05f);
 
     // Add mass
@@ -250,7 +250,7 @@ gg::MObject *
 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
-    btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
+    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
     Shape->setMargin(0.05f);
 
     btVector3 localInertia;
