@@ -16,6 +16,7 @@
 #include <memory>
 #include <iostream>
 #include <mutex>
+#include <atomic>
 
 namespace gg
 {
@@ -39,6 +40,7 @@ namespace gg
             BUILDING, DEBREE, SHIP, SHOT, GROUND, DUST
         };
         std::mutex m_mutex;
+        std::atomic_int version;
 
         inline Material getMaterial()
         { return m_material; }
@@ -101,6 +103,7 @@ namespace gg
                 m_polyhedron = std::move(
                         MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode *>(sn)->getMesh()));
             }
+            version.store(0);
         }
 
         MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Material mat, bool mesh = true) : m_rigidBody(
@@ -113,6 +116,7 @@ namespace gg
                 m_polyhedron = std::move(
                         MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode *>(sn)->getMesh()));
             }
+            version.store(0);
         }
 
         MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Material mat, Nef_polyhedron &&nef) : m_rigidBody(
@@ -120,6 +124,7 @@ namespace gg
         {
             m_empty = m_rigidBody == nullptr;
             m_deleted = false;
+            version.store(0);
         }
 
         MObject(MObject &&other)
@@ -129,6 +134,7 @@ namespace gg
             m_material = other.m_material;
             m_deleted = other.m_deleted;
             m_polyhedron = std::move(other.m_polyhedron);
+            version.store(0);
         }
 
         MObject(MObject &) = delete;

@@ -44,13 +44,6 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh, scale);
     Node->setRotation(rotation);
-    Node->setMaterialType(EMT_SOLID);
-    Node->setMaterialFlag(EMF_LIGHTING, 0);
-    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-    if(items[1] != "")
-    {
-        Node->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture((m_media + texture).c_str()));
-    }
 
     // Set the initial position of the object
     btTransform Transform;
@@ -75,6 +68,11 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     MObject *obj = new MObject(rigidBody, Node, material, true);
     // Store a pointer to the irrlicht node so we can update it later
     rigidBody->setUserPointer((void *) (obj));
+    //make colorfull mesh
+    Node->setMesh(MeshManipulators::convertPolyToMesh(obj->getPolyhedron()));
+    Node->setMaterialType(EMT_SOLID);
+    Node->setMaterialFlag(EMF_LIGHTING, 0);
+    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
     return obj;
 }
@@ -161,7 +159,7 @@ gg::MObject *gg::MObjectCreator::createSolidGround(std::vector<std::string> &&it
 
     // Create an Irrlicht cube
     scene::ISceneNode *Node = m_irrDevice->getSceneManager()->addCubeSceneNode(1.0f);
-    Node->setScale(scale);
+    Node->setScale(scale*vector3df(10,1,10));
     Node->setRotation(rotation);
     Node->setMaterialFlag(video::EMF_LIGHTING, 1);
     Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);

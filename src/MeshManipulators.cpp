@@ -59,6 +59,14 @@ IMesh *gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron 
         }
         i++;
     }
+    //centralize mesh
+    mesh->recalculateBoundingBox();
+    vector3df center = mesh->getBoundingBox().getCenter();
+    S3DVertex *vertices = (S3DVertex *) buf->getVertices();
+    for(int i = 0; i < buf->getVertexCount(); i++)
+    {
+        vertices[i].Pos = vertices[i].Pos - center;
+    }
     mesh->recalculateBoundingBox();
     return mesh;
 }

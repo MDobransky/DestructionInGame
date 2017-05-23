@@ -46,6 +46,8 @@ void gg::MGame::run(bool debug, bool gravity)
 {
 
     ITexture *images = m_irrDriver->getTexture("media/loading.jpg");
+    m_irrDevice->getCursorControl()->setVisible(0);
+    m_irrDevice->setWindowCaption(L"Simulation of environment destruction");
     m_irrDriver->beginScene(true, true, SColor(255, 20, 0, 0));
     m_irrScene->drawAll();
     m_irrDriver->draw2DImage(images, core::position2d<s32>(0, 0), core::rect<s32>(0, 0, 1920, 1080), 0,
@@ -130,9 +132,6 @@ void gg::MGame::run(bool debug, bool gravity)
 
 void gg::MGame::createStartScene()
 {
-    m_irrDevice->getCursorControl()->setVisible(0);
-    m_irrDevice->setWindowCaption(L"Simulation of environment destruction");
-
     // Create the initial scene
     m_irrScene->addLightSceneNode(0, core::vector3df(0, 7000, 0), SColorf(4, 4, 4, 1), 10000);
     m_irrScene->setAmbientLight(video::SColorf(0.3, 0.3, 0.3, 1));
