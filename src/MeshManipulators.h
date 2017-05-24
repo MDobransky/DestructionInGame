@@ -11,8 +11,7 @@
 #include <CGAL/Polyhedron_incremental_builder_3.h>
 #include <CGAL/Nef_polyhedron_3.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
-
-#include <btHACDCompoundShape.h>
+#include <CGAL/convex_decomposition_3.h>
 
 #include <voro++/voro++.hh>
 
@@ -34,7 +33,7 @@ namespace gg
         typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
         typedef CGAL::Polyhedron_3<Kernel> Polyhedron;
         typedef Polyhedron::HalfedgeDS HalfedgeDS;
-        typedef CGAL::Nef_polyhedron_3<Kernel> Nef_polyhedron;
+        typedef CGAL::Nef_polyhedron_3<Kernel, CGAL::SNC_indexed_items> Nef_polyhedron;
 
         static irr::scene::IMesh *convertPolyToMesh(Polyhedron &poly);
 
@@ -42,10 +41,9 @@ namespace gg
 
         static btCollisionShape *convertMesh(irr::scene::IMeshSceneNode *);
 
-        static irr::scene::IMesh *convertMesh(voro::voronoicell &cell);
+        static btCollisionShape *nefToShape(Nef_polyhedron &poly);
 
-        //static irr::scene::IMesh *
-        //  subtractMesh(irr::scene::IMesh *from, irr::scene::IMesh *what, irr::core::vector3df position);
+        static irr::scene::IMesh *convertMesh(voro::voronoicell &cell);
 
         static Nef_polyhedron subtractMesh(Nef_polyhedron &nef, irr::scene::IMesh *what, irr::core::vector3df position);
 

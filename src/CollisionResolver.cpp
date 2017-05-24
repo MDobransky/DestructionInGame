@@ -1,5 +1,5 @@
 #include "CollisionResolver.h"
-#include <thread>
+#include <cmath>
 
 using namespace irr;
 using namespace core;
@@ -68,26 +68,31 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
         if(obj->isMesh() && (other->getMaterial() != MObject::Material::GROUND || impulse > 200 || other->getMaterial() == MObject::Material::SHOT))
         {
             using namespace voro;
-                float cube_size = 2 + 2*0.2f;
-                container con(point.getX()-cube_size,point.getX()+cube_size,
-                              point.getY()-cube_size,point.getY()+cube_size,
-                              point.getZ()-cube_size,point.getZ()+cube_size,
+                float cube_size = 2.5f;
+                vector3df cube_min(point.getX()-cube_size, point.getY()-cube_size, point.getZ()-cube_size);
+                vector3df cube_max(point.getX()+cube_size, point.getY()+cube_size, point.getZ()+cube_size);
+
+                container con(cube_min.X, cube_max.X,
+                              cube_min.Y, cube_max.Y,
+                              cube_min.Z, cube_max.Z,
                               8,8,8,
                               false,false,false,
                               8);
                 con.put(0,point.getX(),point.getY(),point.getZ());
+                //for(auto&& i : {1, 2})
+                {
+                 //   con.put(i,std::fmod(rand(),cube_size) + cube_min.X, std::fmod(rand(),cube_size) + cube_min.Y, std::fmod(rand(),cube_size) + cube_min.Z);
+                }
                 c_loop_all loop(con);
                 loop.start();
                 voronoicell c;
                 con.compute_cell(c,loop);
                 IMesh* mesh = gg::MeshManipulators::convertMesh(c);
 
-            generateDebree(mesh,point,(from-point)*3, obj->getMaterial());
+            //generateDebree(mesh,point,(from-point)*3, obj->getMaterial());
             std::lock_guard<std::mutex> lock (m_taskQueueMutex);
             vector3df position(vector3df(loop.x(),loop.y(),loop.z()) - obj->getNode()->getPosition());
             m_subtractionTasks.push_back(std::make_tuple(obj, mesh, position));
-            //meshSubtractor();
-            //subtractionApplier();
         }
     }
 }
@@ -96,11 +101,11 @@ void gg::MCollisionResolver::generateDebree(IMesh* mesh, btVector3 point, btVect
 {
 
     IMesh* fragment_mesh = m_irrDevice->getSceneManager()->getMeshManipulator()->createMeshUniquePrimitives(mesh);
-   // m_irrDevice->getSceneManager()->getMeshManipulator()->scale(fragment_mesh,vector3df(0.5,0.5,0.5));
-    //MObject* fragment = m_objectCreator->createMeshRigidBody(fragment_mesh, point, 30, material);
-   // m_objects->push_back(std::unique_ptr<MObject>(fragment));
-   //m_btWorld->addRigidBody(fragment->getRigid());
-   // fragment->getRigid()->applyImpulse(impulse, point);
+    m_irrDevice->getSceneManager()->getMeshManipulator()->scale(fragment_mesh,vector3df(0.5,0.5,0.5));
+    MObject* fragment = m_objectCreator->createMeshRigidBody(fragment_mesh, point, 30, material);
+    m_objects->push_back(std::unique_ptr<MObject>(fragment));
+    m_btWorld->addRigidBody(fragment->getRigid());
+    fragment->getRigid()->applyImpulse(impulse, point);
 }
 
 void gg::MCollisionResolver::meshSubtractor()
@@ -201,7 +206,7 @@ void gg::MCollisionResolver::subtractionApplier()
         }
         else
         {
-            obj = m_objectCreator->createMeshRigidBody(new_mesh, position, 10, obj->getMaterial(), false);
+            obj = m_objectCreator->createMeshRigidBody(new_mesh, position, 10, obj->getMaterial());
             obj->setPolyhedron(newPoly);
             m_objects->push_back(std::unique_ptr<MObject>(obj));
             m_btWorld->addRigidBody(obj->getRigid());

@@ -63,7 +63,7 @@ IMesh *gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron 
     mesh->recalculateBoundingBox();
     vector3df center = mesh->getBoundingBox().getCenter();
     S3DVertex *vertices = (S3DVertex *) buf->getVertices();
-    for(int i = 0; i < buf->getVertexCount(); i++)
+    for(u32 i = 0; i < buf->getVertexCount(); i++)
     {
         vertices[i].Pos = vertices[i].Pos - center;
     }
@@ -99,9 +99,34 @@ btCollisionShape *gg::MeshManipulators::convertMesh(IMeshSceneNode *node)
     }
 
     btBvhTriangleMeshShape *sh = new btBvhTriangleMeshShape(btMesh, true);
-    btCollisionShape * compound = new btHACDCompoundShape(sh);
-    delete sh;
-    return compound;
+    return sh;
+}
+
+btCollisionShape *gg::MeshManipulators::nefToShape(gg::MeshManipulators::Nef_polyhedron &poly)
+{
+    btCompoundShape *shape = new btCompoundShape();
+    CGAL::convex_decomposition_3(poly);
+
+    for(auto i = ++poly.volumes_begin(); i != poly.volumes_end(); i++)
+    {
+        if(i->mark())
+        {
+            MeshManipulators::Polyhedron polyhedron;
+            btConvexHullShape *convexshape = new btConvexHullShape();
+            poly.convert_inner_shell_to_polyhedron(i->shells_begin(), polyhedron);
+            for(auto p = polyhedron.points_begin(); p != polyhedron.points_end(); p++)
+            {
+                double a = CGAL::to_double(p->x());
+                double b = CGAL::to_double(p->y());
+                double c = CGAL::to_double(p->z());
+                convexshape->addPoint(btVector3(a,b,c));
+            }
+            btTransform t;
+            t.setIdentity();
+            shape->addChildShape(t, convexshape);
+        }
+    }
+    return shape;
 }
 
 IMesh *gg::MeshManipulators::convertMesh(voro::voronoicell &cell)
@@ -144,33 +169,7 @@ IMesh *gg::MeshManipulators::convertMesh(voro::voronoicell &cell)
 
     return mesh;
 }
-/*
-IMesh *gg::MeshManipulators::subtractMesh(IMesh *from, IMesh *what, vector3df position)
-{
-    if(from && what)
-    {
-        Polyhedron poly_from;
-        PolyhedronBuilder mesh_from(from);
-        poly_from.delegate(mesh_from);
 
-        Polyhedron poly_what;
-        PolyhedronBuilder mesh_what(what, position);
-        poly_what.delegate(mesh_what);
-
-        if(poly_from.is_closed() && poly_what.is_closed())
-        {
-            Nef_polyhedron N1(poly_from);
-            Nef_polyhedron N2(poly_what);
-            Nef_polyhedron N3(N1 - N2);
-            Polyhedron res;
-            N3.convert_to_polyhedron(res);
-            return convertPolyToMesh(res);
-        }
-        return from;
-    }
-    return NULL;
-}
-*/
 gg::MeshManipulators::Nef_polyhedron
     gg::MeshManipulators::subtractMesh(gg::MeshManipulators::Nef_polyhedron &nef, IMesh *what, vector3df position)
 {

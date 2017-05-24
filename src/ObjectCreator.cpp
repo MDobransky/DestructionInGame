@@ -45,6 +45,14 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh, scale);
     Node->setRotation(rotation);
 
+    MeshManipulators::Nef_polyhedron polyhedron = std::move(MeshManipulators::makeNefPolyhedron(mesh));
+
+    //make colorfull mesh
+    Node->setMesh(MeshManipulators::convertPolyToMesh(polyhedron));
+    Node->setMaterialType(EMT_SOLID);
+    Node->setMaterialFlag(EMF_LIGHTING, 0);
+    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+
     // Set the initial position of the object
     btTransform Transform;
     Transform.setIdentity();
@@ -53,7 +61,7 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
     // Create the shape
-    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+    btCollisionShape *Shape = MeshManipulators::nefToShape(polyhedron);
     Shape->setMargin(0.05f);
 
     // Add mass
@@ -65,14 +73,10 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
 
     MObject::Material material = MObject::Material::BUILDING;
 
-    MObject *obj = new MObject(rigidBody, Node, material, true);
+    MObject *obj = new MObject(rigidBody, Node, material, std::move(polyhedron));
     // Store a pointer to the irrlicht node so we can update it later
     rigidBody->setUserPointer((void *) (obj));
-    //make colorfull mesh
-    Node->setMesh(MeshManipulators::convertPolyToMesh(obj->getPolyhedron()));
-    Node->setMaterialType(EMT_SOLID);
-    Node->setMaterialFlag(EMF_LIGHTING, 0);
-    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+
 
     return obj;
 }
@@ -234,7 +238,7 @@ gg::MObject *gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
 
 gg::MObject *
     gg::MObjectCreator::createMeshRigidBody(IMesh *mesh, btVector3 position, btScalar mass,
-                                            MObject::Material material, bool make_nef)
+                                            MObject::Material material)
 {
     IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
     Node->setPosition(vector3df(position.getX(), position.getY(), position.getZ()));
@@ -242,13 +246,15 @@ gg::MObject *
     Node->setMaterialFlag(EMF_LIGHTING, 0);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
+    MeshManipulators::Nef_polyhedron polyhedron = std::move(MeshManipulators::makeNefPolyhedron(mesh));
+
     btTransform Transform;
     Transform.setIdentity();
     Transform.setOrigin(position);
 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
-    btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+    btCollisionShape *Shape = MeshManipulators::nefToShape(polyhedron);
     Shape->setMargin(0.05f);
 
     btVector3 localInertia;
@@ -256,7 +262,7 @@ gg::MObject *
 
     btRigidBody *rigidBody = new btRigidBody(mass, motionState, Shape, localInertia);
 
-    MObject *fragment = new MObject(rigidBody, Node, material, make_nef);
+    MObject *fragment = new MObject(rigidBody, Node, material, std::move(polyhedron));
     rigidBody->setUserPointer((void *) (fragment));
 
     return fragment;

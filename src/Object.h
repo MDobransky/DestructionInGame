@@ -124,6 +124,7 @@ namespace gg
         {
             m_empty = m_rigidBody == nullptr;
             m_deleted = false;
+            m_isMesh = true;
             version.store(0);
         }
 

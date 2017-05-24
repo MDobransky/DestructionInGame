@@ -32,9 +32,8 @@ namespace gg
 
         MObject *shoot(btVector3 position, btVector3 impulse);
 
-        MObject *
-            createMeshRigidBody(irr::scene::IMesh *mesh, btVector3 position, btScalar mass,
-                                MObject::Material material, bool make_nef);
+        MObject *createMeshRigidBody(irr::scene::IMesh *mesh, btVector3 position,
+                                     btScalar mass, MObject::Material material);
 
     private:
         irr::IrrlichtDevice *m_irrDevice;
