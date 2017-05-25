@@ -35,9 +35,9 @@ namespace gg
         typedef Polyhedron::HalfedgeDS HalfedgeDS;
         typedef CGAL::Nef_polyhedron_3<Kernel, CGAL::SNC_indexed_items> Nef_polyhedron;
 
-        static irr::scene::IMesh *convertPolyToMesh(Polyhedron &poly);
+        static std::tuple<irr::scene::IMesh *, irr::core::vector3df> convertPolyToMesh(Polyhedron &poly);
 
-        static irr::scene::IMesh *convertPolyToMesh(Nef_polyhedron &poly);
+        static std::tuple<irr::scene::IMesh *, irr::core::vector3df> convertPolyToMesh(Nef_polyhedron &poly);
 
         static btCollisionShape *convertMesh(irr::scene::IMeshSceneNode *);
 
@@ -66,16 +66,15 @@ namespace gg
             irr::core::vector3df m_position;
         };
 
-
         template<class Handle>
-            class handle_compare
+        class handle_compare
+        {
+        public:
+            bool operator()(const Handle& h1, const Handle& h2) const
             {
-            public:
-                bool operator()(const Handle& h1, const Handle& h2) const
-                {
-                    return &(*h1) < &(*h2);
-                }
-            };
+                return &(*h1) < &(*h2);
+            }
+        };
 
         class CModifierExplode : public CGAL::Modifier_base<HalfedgeDS>
         {
@@ -213,7 +212,7 @@ namespace gg
         };
 
     };
-/*
+
     class Timer
     {
     public:
@@ -232,7 +231,7 @@ namespace gg
         typedef std::chrono::high_resolution_clock clock_;
         typedef std::chrono::duration<double, std::ratio<1> > second_;
         std::chrono::time_point<clock_> beg_;
-    };*/
+    };
 
 
 }

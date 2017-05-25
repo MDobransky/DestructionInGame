@@ -47,8 +47,10 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
 
     MeshManipulators::Nef_polyhedron polyhedron = std::move(MeshManipulators::makeNefPolyhedron(mesh));
 
+    vector3df center;
     //make colorfull mesh
-    Node->setMesh(MeshManipulators::convertPolyToMesh(polyhedron));
+    std::tie(mesh, center) = MeshManipulators::convertPolyToMesh(polyhedron);
+    Node->setMesh(mesh);
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_LIGHTING, 0);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
@@ -56,7 +58,7 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     // Set the initial position of the object
     btTransform Transform;
     Transform.setIdentity();
-    Transform.setOrigin(position);
+    Transform.setOrigin(position + btVector3(center.X, center.Y, center.Z));
 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 

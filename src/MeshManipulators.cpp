@@ -14,7 +14,7 @@ using namespace gui;
 using namespace CGAL;
 
 
-IMesh *gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron &poly)
+std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron &poly)
 {
     Polygon_mesh_processing::triangulate_faces(poly,
                                                CGAL::Polygon_mesh_processing::parameters::use_delaunay_triangulation(
@@ -22,9 +22,10 @@ IMesh *gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron 
 
     if(poly.size_of_vertices() == 0)
     {
-        return NULL;
+        return std::make_tuple(nullptr, vector3df());
     }
 
+    vector3df min(1000,1000,1000), max(-1000,-1000,-1000);
     irr::scene::SMesh *mesh = new SMesh();
     irr::scene::SMeshBuffer *buf = 0;
     buf = new SMeshBuffer();
@@ -42,6 +43,9 @@ IMesh *gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron 
         double c = CGAL::to_double(p->z());
         buf->Vertices[i] = S3DVertex(a, b, c, a, b, c, video::SColor(255, rand() % 256, rand() % 256, rand() % 256), 0,
                                      0);
+        vector3df current(a,b,c);
+        min = current < min ? current : min;
+        max = current > max ? current : max;
         i++;
     }
     typedef Polyhedron::Vertex_const_iterator VCI;
@@ -59,19 +63,19 @@ IMesh *gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron 
         }
         i++;
     }
-    //centralize mesh
+    //centralize mesh center of mass
     mesh->recalculateBoundingBox();
-    vector3df center = mesh->getBoundingBox().getCenter();
+    vector3df center = min + (max-min)/2;
     S3DVertex *vertices = (S3DVertex *) buf->getVertices();
     for(u32 i = 0; i < buf->getVertexCount(); i++)
     {
         vertices[i].Pos = vertices[i].Pos - center;
     }
     mesh->recalculateBoundingBox();
-    return mesh;
+    return std::make_tuple(mesh,center);
 }
 
-IMesh *gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Nef_polyhedron &poly)
+std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Nef_polyhedron &poly)
 {
     Polyhedron res;
     poly.convert_to_polyhedron(res);
@@ -105,8 +109,10 @@ btCollisionShape *gg::MeshManipulators::convertMesh(IMeshSceneNode *node)
 btCollisionShape *gg::MeshManipulators::nefToShape(gg::MeshManipulators::Nef_polyhedron &poly)
 {
     btCompoundShape *shape = new btCompoundShape();
+    Timer t;
     CGAL::convex_decomposition_3(poly);
-
+    std::cout << t.elapsed() << " decomp\n";
+    Timer tt;
     for(auto i = ++poly.volumes_begin(); i != poly.volumes_end(); i++)
     {
         if(i->mark())
@@ -126,6 +132,7 @@ btCollisionShape *gg::MeshManipulators::nefToShape(gg::MeshManipulators::Nef_pol
             shape->addChildShape(t, convexshape);
         }
     }
+    std::cout << tt.elapsed() << " conversion\n";
     return shape;
 }
 

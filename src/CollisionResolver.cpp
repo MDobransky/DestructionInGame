@@ -136,7 +136,10 @@ void gg::MCollisionResolver::meshSubtractor()
                 std::vector<MeshManipulators::Nef_polyhedron> newNefPolyhedrons(std::move(MeshManipulators::splitPolyhedron(std::move(newPoly))));
                 for(size_t i = 0; i < newNefPolyhedrons.size(); i++)
                 {
-                    IMesh* new_mesh = MeshManipulators::convertPolyToMesh(newNefPolyhedrons[i]);
+                    IMesh* new_mesh;
+                    vector3df center;
+                    std::tie(new_mesh, center) = MeshManipulators::convertPolyToMesh(newNefPolyhedrons[i]);
+                    btVector3 btCenter(center.X, center.Y, center.Z);
                     std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
                     if(i == 0)
                     {
@@ -147,7 +150,7 @@ void gg::MCollisionResolver::meshSubtractor()
                     {
                         m_subtractionResults.push_back(
                                     std::make_tuple(new MObject(NULL, NULL, obj->getMaterial(), false),
-                                                    obj->getRigid()->getCenterOfMassPosition(),
+                                                    obj->getRigid()->getCenterOfMassPosition() + btCenter,
                                                     std::move(newNefPolyhedrons[i]), new_mesh, old_version));
                     }
                 }
@@ -198,7 +201,7 @@ void gg::MCollisionResolver::subtractionApplier()
             Node->setMaterialType(EMT_SOLID);
             Node->setMaterialFlag(EMF_LIGHTING, 0);
             Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-            btCollisionShape *Shape = MeshManipulators::convertMesh(Node);
+            btCollisionShape *Shape = MeshManipulators::nefToShape(newPoly);
             Shape->setMargin(0.05f);
             delete body->getCollisionShape();
             body->setCollisionShape(Shape);
@@ -211,8 +214,6 @@ void gg::MCollisionResolver::subtractionApplier()
             m_objects->push_back(std::unique_ptr<MObject>(obj));
             m_btWorld->addRigidBody(obj->getRigid());
         }
-
-
     }
 }
 
