@@ -14,6 +14,7 @@
 #include <CGAL/convex_decomposition_3.h>
 
 #include <voro++/voro++.hh>
+#include <btHACDCompoundShape.h>
 
 #include <chrono>
 #include <vector>

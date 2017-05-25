@@ -109,10 +109,7 @@ btCollisionShape *gg::MeshManipulators::convertMesh(IMeshSceneNode *node)
 btCollisionShape *gg::MeshManipulators::nefToShape(gg::MeshManipulators::Nef_polyhedron &poly)
 {
     btCompoundShape *shape = new btCompoundShape();
-    Timer t;
     CGAL::convex_decomposition_3(poly);
-    std::cout << t.elapsed() << " decomp\n";
-    Timer tt;
     for(auto i = ++poly.volumes_begin(); i != poly.volumes_end(); i++)
     {
         if(i->mark())
@@ -132,7 +129,6 @@ btCollisionShape *gg::MeshManipulators::nefToShape(gg::MeshManipulators::Nef_pol
             shape->addChildShape(t, convexshape);
         }
     }
-    std::cout << tt.elapsed() << " conversion\n";
     return shape;
 }
 

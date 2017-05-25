@@ -201,7 +201,7 @@ void gg::MCollisionResolver::subtractionApplier()
             Node->setMaterialType(EMT_SOLID);
             Node->setMaterialFlag(EMF_LIGHTING, 0);
             Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-            btCollisionShape *Shape = MeshManipulators::nefToShape(newPoly);
+            btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
             Shape->setMargin(0.05f);
             delete body->getCollisionShape();
             body->setCollisionShape(Shape);

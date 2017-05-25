@@ -12,6 +12,7 @@
 #include <LinearMath/btAlignedObjectArray.h>
 #include <LinearMath/btConvexHullComputer.h>
 #include <LinearMath/btQuaternion.h>
+#include <btHACDCompoundShape.h>
 
 #include <string>
 #include <vector>
