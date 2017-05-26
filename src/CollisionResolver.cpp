@@ -33,7 +33,7 @@ gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice* irrDev, btDiscreteDyn
 {
     m_done.store(false);
     m_subtractor1 = std::move(std::thread([this] { meshSubtractor(); }));
-    m_subtractor2 = std::move(std::thread([this] { meshSubtractor(); }));
+    //m_subtractor2 = std::move(std::thread([this] { meshSubtractor(); }));
 }
 
 gg::MCollisionResolver::~MCollisionResolver()
@@ -68,9 +68,9 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
         if(obj->isMesh() && (other->getMaterial() != MObject::Material::GROUND || impulse > 200 || other->getMaterial() == MObject::Material::SHOT))
         {
             using namespace voro;
-                float cube_size = 2.5f;
-                vector3df cube_min(point.getX()-cube_size, point.getY()-cube_size, point.getZ()-cube_size);
-                vector3df cube_max(point.getX()+cube_size, point.getY()+cube_size, point.getZ()+cube_size);
+                float cube_size = 4.0f;
+                vector3df cube_min(-cube_size, -cube_size, -cube_size);
+                vector3df cube_max(cube_size, cube_size, cube_size);
 
                 container con(cube_min.X, cube_max.X,
                               cube_min.Y, cube_max.Y,
@@ -78,10 +78,10 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
                               8,8,8,
                               false,false,false,
                               8);
-                con.put(0,point.getX(),point.getY(),point.getZ());
-                //for(auto&& i : {1, 2})
+                con.put(0,0,0,0);
+                for(auto&& i : {1, 2})
                 {
-                 //   con.put(i,std::fmod(rand(),cube_size) + cube_min.X, std::fmod(rand(),cube_size) + cube_min.Y, std::fmod(rand(),cube_size) + cube_min.Z);
+                    con.put(i,std::fmod(rand(),cube_size) + cube_min.X, std::fmod(rand(),cube_size) + cube_min.Y, std::fmod(rand(),cube_size) + cube_min.Z);
                 }
                 c_loop_all loop(con);
                 loop.start();
@@ -89,10 +89,11 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
                 con.compute_cell(c,loop);
                 IMesh* mesh = gg::MeshManipulators::convertMesh(c);
 
-            //generateDebree(mesh,point,(from-point)*3, obj->getMaterial());
+
             std::lock_guard<std::mutex> lock (m_taskQueueMutex);
-            vector3df position(vector3df(loop.x(),loop.y(),loop.z()) - obj->getNode()->getPosition());
-            m_subtractionTasks.push_back(std::make_tuple(obj, mesh, position));
+            vector3df relative_position(vector3df(point.x(),point.y(),point.z()) - obj->getNode()->getPosition());
+            generateDebree(mesh, point, btVector3(0,0,0), obj->getMaterial());
+            m_subtractionTasks.push_back(std::make_tuple(obj, mesh, relative_position));
         }
     }
 }
@@ -102,7 +103,7 @@ void gg::MCollisionResolver::generateDebree(IMesh* mesh, btVector3 point, btVect
 
     IMesh* fragment_mesh = m_irrDevice->getSceneManager()->getMeshManipulator()->createMeshUniquePrimitives(mesh);
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(fragment_mesh,vector3df(0.5,0.5,0.5));
-    MObject* fragment = m_objectCreator->createMeshRigidBody(fragment_mesh, point, 30, material);
+    MObject* fragment = m_objectCreator->createMeshRigidBody(fragment_mesh, point, 10, MObject::Material::GROUND);
     m_objects->push_back(std::unique_ptr<MObject>(fragment));
     m_btWorld->addRigidBody(fragment->getRigid());
     fragment->getRigid()->applyImpulse(impulse, point);
@@ -148,9 +149,10 @@ void gg::MCollisionResolver::meshSubtractor()
                     }
                     else
                     {
+                        btVector3 v(obj->getNode()->getPosition().X,obj->getNode()->getPosition().Y,obj->getNode()->getPosition().Z);
                         m_subtractionResults.push_back(
                                     std::make_tuple(new MObject(NULL, NULL, obj->getMaterial(), false),
-                                                    obj->getRigid()->getCenterOfMassPosition() + btCenter,
+                                                    v + btCenter,
                                                     std::move(newNefPolyhedrons[i]), new_mesh, old_version));
                     }
                 }
@@ -209,8 +211,7 @@ void gg::MCollisionResolver::subtractionApplier()
         }
         else
         {
-            obj = m_objectCreator->createMeshRigidBody(new_mesh, position, 10, obj->getMaterial());
-            obj->setPolyhedron(newPoly);
+            obj = m_objectCreator->createMeshRigidBody(new_mesh, position, 10, obj->getMaterial(), std::move(newPoly));
             m_objects->push_back(std::unique_ptr<MObject>(obj));
             m_btWorld->addRigidBody(obj->getRigid());
         }

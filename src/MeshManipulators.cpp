@@ -14,8 +14,11 @@ using namespace gui;
 using namespace CGAL;
 
 
-std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Polyhedron &poly)
+std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Nef_polyhedron &NefPoly)
 {
+    Polyhedron poly;
+    NefPoly.convert_to_polyhedron(poly);
+
     Polygon_mesh_processing::triangulate_faces(poly,
                                                CGAL::Polygon_mesh_processing::parameters::use_delaunay_triangulation(
                                                        true));
@@ -72,14 +75,9 @@ std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshM
         vertices[i].Pos = vertices[i].Pos - center;
     }
     mesh->recalculateBoundingBox();
-    return std::make_tuple(mesh,center);
-}
 
-std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshManipulators::Nef_polyhedron &poly)
-{
-    Polyhedron res;
-    poly.convert_to_polyhedron(res);
-    return convertPolyToMesh(res);
+    NefPoly = makeNefPolyhedron(mesh);
+    return std::make_tuple(mesh,center);
 }
 
 btCollisionShape *gg::MeshManipulators::convertMesh(IMeshSceneNode *node)

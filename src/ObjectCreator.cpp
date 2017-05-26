@@ -63,7 +63,6 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
     // Create the shape
-
     Timer t;//MeshManipulators::nefToShape(polyhedron);
     btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
     std::cout << t.elapsed() << "\n";
@@ -251,7 +250,35 @@ gg::MObject *
     Node->setMaterialFlag(EMF_LIGHTING, 0);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
-    MeshManipulators::Nef_polyhedron polyhedron = std::move(MeshManipulators::makeNefPolyhedron(mesh));
+    btTransform Transform;
+    Transform.setIdentity();
+    Transform.setOrigin(position);
+
+    btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
+
+    btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
+    Shape->setMargin(0.05f);
+
+    btVector3 localInertia;
+    Shape->calculateLocalInertia(mass, localInertia);
+
+    btRigidBody *rigidBody = new btRigidBody(mass, motionState, Shape, localInertia);
+
+    MObject *fragment = new MObject(rigidBody, Node, material, true);
+    rigidBody->setUserPointer((void *) (fragment));
+
+    return fragment;
+}
+
+gg::MObject *gg::MObjectCreator::createMeshRigidBody(IMesh* mesh, btVector3 position, btScalar mass,
+                                                     gg::MObject::Material material,
+                                                     gg::MeshManipulators::Nef_polyhedron &&poly)
+{
+    IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
+    Node->setPosition(vector3df(position.getX(), position.getY(), position.getZ()));
+    Node->setMaterialType(EMT_SOLID);
+    Node->setMaterialFlag(EMF_LIGHTING, 0);
+    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
     btTransform Transform;
     Transform.setIdentity();
@@ -267,7 +294,7 @@ gg::MObject *
 
     btRigidBody *rigidBody = new btRigidBody(mass, motionState, Shape, localInertia);
 
-    MObject *fragment = new MObject(rigidBody, Node, material, std::move(polyhedron));
+    MObject *fragment = new MObject(rigidBody, Node, material, std::move(poly));
     rigidBody->setUserPointer((void *) (fragment));
 
     return fragment;

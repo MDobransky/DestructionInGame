@@ -5,6 +5,7 @@
 #define OBJECTCREATOR_H
 
 #include "Object.h"
+#include "MeshManipulators.h"
 
 #include <irrlicht.h>
 #include <btBulletCollisionCommon.h>
@@ -35,6 +36,10 @@ namespace gg
 
         MObject *createMeshRigidBody(irr::scene::IMesh *mesh, btVector3 position,
                                      btScalar mass, MObject::Material material);
+
+        MObject *createMeshRigidBody(irr::scene::IMesh *mesh, btVector3 position,
+                                     btScalar mass, MObject::Material material,
+                                     MeshManipulators::Nef_polyhedron &&poly);
 
     private:
         irr::IrrlichtDevice *m_irrDevice;
