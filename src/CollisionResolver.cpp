@@ -81,19 +81,19 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
                 con.put(0,0,0,0);
                 for(auto&& i : {1, 2})
                 {
-                    con.put(i,std::fmod(rand(),cube_size) + cube_min.X, std::fmod(rand(),cube_size) + cube_min.Y, std::fmod(rand(),cube_size) + cube_min.Z);
+                 //   con.put(i,std::fmod(rand(),cube_size) + cube_min.X, std::fmod(rand(),cube_size) + cube_min.Y, std::fmod(rand(),cube_size) + cube_min.Z);
                 }
                 c_loop_all loop(con);
                 loop.start();
                 voronoicell c;
                 con.compute_cell(c,loop);
-                IMesh* mesh = gg::MeshManipulators::convertMesh(c);
+                IMesh* debree_mesh = gg::MeshManipulators::convertMesh(c);
 
 
             std::lock_guard<std::mutex> lock (m_taskQueueMutex);
             vector3df relative_position(vector3df(point.x(),point.y(),point.z()) - obj->getNode()->getPosition());
-            generateDebree(mesh, point, btVector3(0,0,0), obj->getMaterial());
-            m_subtractionTasks.push_back(std::make_tuple(obj, mesh, relative_position));
+            generateDebree(debree_mesh, point, btVector3(0,0,0), obj->getMaterial());
+            m_subtractionTasks.push_back(std::make_tuple(obj, debree_mesh, relative_position));
         }
     }
 }
@@ -133,7 +133,14 @@ void gg::MCollisionResolver::meshSubtractor()
             int old_version = obj->version.load();
             try
             {
-                MeshManipulators::Nef_polyhedron newPoly = MeshManipulators::subtractMesh(*oldPoly, mesh, position);
+                quaternion quat(obj->getNode()->getRelativeTransformation());
+                quat.makeInverse();
+                position = quat * position;
+                quat = obj->getPolyhedronTransform();
+                position = quat.makeInverse() * position;
+                //IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addSphereSceneNode(1);
+                //Node->setPosition(obj->getNode()->getAbsolutePosition()+ position + obj->translation);
+                MeshManipulators::Nef_polyhedron newPoly = MeshManipulators::subtractMesh(*oldPoly, mesh, position + obj->translation);
                 std::vector<MeshManipulators::Nef_polyhedron> newNefPolyhedrons(std::move(MeshManipulators::splitPolyhedron(std::move(newPoly))));
                 for(size_t i = 0; i < newNefPolyhedrons.size(); i++)
                 {
@@ -144,16 +151,27 @@ void gg::MCollisionResolver::meshSubtractor()
                     std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
                     if(i == 0)
                     {
-                        m_subtractionResults.push_back(std::make_tuple(obj, obj->getRigid()->getCenterOfMassPosition(),
-                                                                       std::move(newNefPolyhedrons[0]), new_mesh, old_version));
+                        m_subtractionResults.push_back(std::make_tuple(obj,
+                                                                       obj->getRigid()->getCenterOfMassPosition(),
+                                                                       std::move(newNefPolyhedrons[0]),
+                                                                       new_mesh,
+                                                                       old_version));
                     }
                     else
                     {
-                        btVector3 v(obj->getNode()->getPosition().X,obj->getNode()->getPosition().Y,obj->getNode()->getPosition().Z);
+                        //btVector3 oldPosition(obj->getNode()->getPosition().X,obj->getNode()->getPosition().Y,obj->getNode()->getPosition().Z);
+                        vector3df newPosition;
+                        //newPosition = obj->getPolyhedronTransform() ;
+                        newPosition = quaternion(obj->getNode()->getRelativeTransformation()) * center;
+                        newPosition += obj->getNode()->getPosition();
+                        MObject* newObj = new MObject(NULL, NULL, obj->getMaterial(), false);
+                        newObj->translation = center;
                         m_subtractionResults.push_back(
-                                    std::make_tuple(new MObject(NULL, NULL, obj->getMaterial(), false),
-                                                    v + btCenter,
-                                                    std::move(newNefPolyhedrons[i]), new_mesh, old_version));
+                                    std::make_tuple(newObj,
+                                                    btVector3(newPosition.X, newPosition.Y, newPosition.Z),
+                                                    std::move(newNefPolyhedrons[i]),
+                                                    new_mesh,
+                                                    old_version));
                     }
                 }
             }
@@ -211,7 +229,9 @@ void gg::MCollisionResolver::subtractionApplier()
         }
         else
         {
+            vector3df translation = obj->translation;
             obj = m_objectCreator->createMeshRigidBody(new_mesh, position, 10, obj->getMaterial(), std::move(newPoly));
+            obj->translation = translation;
             m_objects->push_back(std::unique_ptr<MObject>(obj));
             m_btWorld->addRigidBody(obj->getRigid());
         }

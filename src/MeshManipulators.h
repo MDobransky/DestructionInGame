@@ -77,7 +77,7 @@ namespace gg
             }
         };
 
-        class CModifierExplode : public CGAL::Modifier_base<HalfedgeDS>
+        class SplitModifier : public CGAL::Modifier_base<HalfedgeDS>
         {
         private:
             typedef typename Kernel::Triangle_3 Triangle;
@@ -96,120 +96,26 @@ namespace gg
 
 
         public:
-
-            // life cycle
-            CModifierExplode(Halfedge_handle seed_halfedge, Halfedges& halfedges)
+            SplitModifier(Halfedge_handle seed_halfedge, Halfedges& halfedges)
                     : m_seed_halfedge(seed_halfedge), m_halfedges(halfedges)
             {
             }
-            ~CModifierExplode() {}
+            ~SplitModifier() {}
 
-            void operator()( HalfedgeDS& hds)
-            {
-                Faces faces;
-                Vertices vertices;
-                std::list<Vertex_handle> ordered_vertices;
-                std::map<Vertex_handle,int,handle_compare<Vertex_handle> > vertex_map;
-
-                // traverse component and fill sets
-                std::stack<Halfedge_handle> stack;
-                stack.push(m_seed_halfedge);
-                int vertex_index = 0;
-                while(!stack.empty())
-                {
-                    // pop halfedge from queue
-                    Halfedge_handle he = stack.top();
-                    stack.pop();
-                    m_halfedges.insert(he);
-
-                    // let's see its incident face
-                    if(!he->is_border())
-                    {
-                        Face_handle f = he->facet();
-                        if(faces.find(f) == faces.end())
-                            faces.insert(f);
-                    }
-
-                    // let's see its end vertex
-                    Vertex_handle v = he->vertex();
-                    if(vertices.find(v) == vertices.end())
-                    {
-                        vertices.insert(v);
-                        ordered_vertices.push_back(v);
-                        vertex_map[v] = vertex_index++;
-                    }
-
-                    // go and discover component
-                    Halfedge_handle nhe = he->next();
-                    Halfedge_handle ohe = he->opposite();
-                    if(m_halfedges.find(nhe) == m_halfedges.end())
-                        stack.push(nhe);
-                    if(m_halfedges.find(ohe) == m_halfedges.end())
-                        stack.push(ohe);
-                }
-
-                builder B(hds,true);
-                B.begin_surface(3,1,6);
-
-                // add vertices
-                std::list<Vertex_handle>::iterator vit;
-                for(vit = ordered_vertices.begin();
-                    vit != ordered_vertices.end();
-                    vit++)
-                {
-                    Vertex_handle v = *vit;
-                    B.add_vertex(v->point());
-                }
-
-                // add facets
-                Faces::iterator fit;
-                for(fit = faces.begin();
-                    fit != faces.end();
-                    fit++)
-                {
-                    Face_handle f = *fit;
-                    B.begin_facet();
-                    F_circulator he = f->facet_begin();
-                    F_circulator end = he;
-                    CGAL_For_all(he,end)
-                    {
-                        Vertex_handle v = he->vertex();
-                        B.add_vertex_to_facet(vertex_map[v]);
-                    }
-                    B.end_facet();
-                }
-                B.end_surface();
-            }
+            void operator()( HalfedgeDS& hds);
         };
 
-        class Split_polyhedron
+        class PolyhedronSplitter
         {
         public:
             typedef typename Polyhedron::HalfedgeDS HalfedgeDS;
             typedef typename Polyhedron::Halfedge_handle Halfedge_handle;
             typedef typename Polyhedron::Halfedge_iterator Halfedge_iterator;
 
-            Split_polyhedron() {}
-            ~Split_polyhedron() {}
+            PolyhedronSplitter() {}
+            ~PolyhedronSplitter() {}
 
-            void run(Polyhedron &polyhedron, std::vector<Nef_polyhedron> &out)
-            {
-                std::set<Halfedge_handle, handle_compare<Halfedge_handle> > halfedges;
-                Polyhedron::Halfedge_iterator he;
-                for(he = polyhedron.halfedges_begin();
-                    he != polyhedron.halfedges_end();
-                    he++)
-                {
-                    if(halfedges.find(he) == halfedges.end())
-                    {
-                        // adds one component as polyhedron
-                        CModifierExplode modifier(he,halfedges);
-                        Polyhedron component;
-                        component.delegate(modifier);
-                        out.push_back(Nef_polyhedron(component));
-                    }
-                }
-            }
+            std::vector<Nef_polyhedron> run(Polyhedron &polyhedron);
         };
 
     };

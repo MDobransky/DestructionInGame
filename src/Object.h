@@ -75,6 +75,13 @@ namespace gg
             }
         }
 
+        inline const irr::core::quaternion getPolyhedronTransform()
+        {
+            return m_polyhedronTransformation;
+        }
+
+        irr::core::vector3df translation = irr::core::vector3df(0,0,0);
+
         ~MObject()
         {
             if(m_rigidBody.get() != nullptr)
@@ -98,10 +105,12 @@ namespace gg
         {
             m_empty = m_rigidBody == nullptr;
             m_deleted = false;
+            m_polyhedronTransformation.makeIdentity();
             if(m_isMesh)
             {
                 m_polyhedron = std::move(
                         MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode *>(sn)->getMesh()));
+                m_polyhedronTransformation = sn->getRelativeTransformation();
             }
             version.store(0);
         }
@@ -111,10 +120,12 @@ namespace gg
         {
             m_empty = m_rigidBody == nullptr;
             m_deleted = false;
+            m_polyhedronTransformation.makeIdentity();
             if(m_isMesh)
             {
                 m_polyhedron = std::move(
                         MeshManipulators::makeNefPolyhedron(static_cast<irr::scene::IMeshSceneNode *>(sn)->getMesh()));
+                m_polyhedronTransformation = sn->getRelativeTransformation();
             }
             version.store(0);
         }
@@ -125,6 +136,7 @@ namespace gg
             m_empty = m_rigidBody == nullptr;
             m_deleted = false;
             m_isMesh = true;
+            m_polyhedronTransformation = sn->getRelativeTransformation();
             version.store(0);
         }
 
@@ -135,6 +147,8 @@ namespace gg
             m_material = other.m_material;
             m_deleted = other.m_deleted;
             m_polyhedron = std::move(other.m_polyhedron);
+            m_polyhedronTransformation = std::move(other.m_polyhedronTransformation);
+            translation = other.translation;
             version.store(0);
         }
 
@@ -151,6 +165,7 @@ namespace gg
         Material m_material;
         bool m_isMesh = false;
         Nef_polyhedron m_polyhedron;
+        irr::core::quaternion m_polyhedronTransformation;
     };
 
 }

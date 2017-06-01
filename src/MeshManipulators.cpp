@@ -51,6 +51,7 @@ std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshM
         max = current > max ? current : max;
         i++;
     }
+
     typedef Polyhedron::Vertex_const_iterator VCI;
     typedef CGAL::Inverse_index<VCI> Index;
     Index index(poly.vertices_begin(), poly.vertices_end());
@@ -76,7 +77,7 @@ std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshM
     }
     mesh->recalculateBoundingBox();
 
-    NefPoly = makeNefPolyhedron(mesh);
+//    NefPoly = makeNefPolyhedron(mesh);
     return std::make_tuple(mesh,center);
 }
 
@@ -207,10 +208,10 @@ std::vector<gg::MeshManipulators::Nef_polyhedron>
     gg::MeshManipulators::splitPolyhedron(gg::MeshManipulators::Nef_polyhedron poly)
 {
     std::vector<MeshManipulators::Nef_polyhedron> splitPolies;
-    Split_polyhedron splitter;
+    PolyhedronSplitter splitter;
     Polyhedron p;
     poly.convert_to_polyhedron(p);
-    splitter.run(p, splitPolies);
+    splitPolies = splitter.run(p);
     return splitPolies;
 }
 
@@ -269,7 +270,101 @@ void gg::MeshManipulators::PolyhedronBuilder::operator()(gg::MeshManipulators::H
     B.end_surface();
 }
 
-/*
 
+std::vector<gg::MeshManipulators::Nef_polyhedron> gg::MeshManipulators::PolyhedronSplitter::run(gg::MeshManipulators::Polyhedron& polyhedron)
+{
+    std::vector<Nef_polyhedron> out;
+    std::set<Halfedge_handle, handle_compare<Halfedge_handle> > halfedges;
+    Polyhedron::Halfedge_iterator he;
+    for(he = polyhedron.halfedges_begin();
+        he != polyhedron.halfedges_end();
+        he++)
+    {
+        if(halfedges.find(he) == halfedges.end())
+        {
+            // adds one component as polyhedron
+            SplitModifier modifier(he,halfedges);
+            Polyhedron component;
+            component.delegate(modifier);
+            out.push_back(Nef_polyhedron(component));
+        }
+    }
+    return std::move(out);
+}
 
-*/
+void gg::MeshManipulators::SplitModifier::operator()(gg::MeshManipulators::HalfedgeDS& hds)
+{
+    Faces faces;
+    Vertices vertices;
+    std::list<Vertex_handle> ordered_vertices;
+    std::map<Vertex_handle,int,handle_compare<Vertex_handle> > vertex_map;
+
+    // traverse component and fill sets
+    std::stack<Halfedge_handle> stack;
+    stack.push(m_seed_halfedge);
+    int vertex_index = 0;
+    while(!stack.empty())
+    {
+        // pop halfedge from queue
+        Halfedge_handle he = stack.top();
+        stack.pop();
+        m_halfedges.insert(he);
+
+        // let's see its incident face
+        if(!he->is_border())
+        {
+            Face_handle f = he->facet();
+            if(faces.find(f) == faces.end())
+                faces.insert(f);
+        }
+
+        // let's see its end vertex
+        Vertex_handle v = he->vertex();
+        if(vertices.find(v) == vertices.end())
+        {
+            vertices.insert(v);
+            ordered_vertices.push_back(v);
+            vertex_map[v] = vertex_index++;
+        }
+
+        // go and discover component
+        Halfedge_handle nhe = he->next();
+        Halfedge_handle ohe = he->opposite();
+        if(m_halfedges.find(nhe) == m_halfedges.end())
+            stack.push(nhe);
+        if(m_halfedges.find(ohe) == m_halfedges.end())
+            stack.push(ohe);
+    }
+
+    builder B(hds,true);
+    B.begin_surface(3,1,6);
+
+    // add vertices
+    std::list<Vertex_handle>::iterator vit;
+    for(vit = ordered_vertices.begin();
+        vit != ordered_vertices.end();
+        vit++)
+    {
+        Vertex_handle v = *vit;
+        B.add_vertex(v->point());
+    }
+
+    // add facets
+    Faces::iterator fit;
+    for(fit = faces.begin();
+        fit != faces.end();
+        fit++)
+    {
+        Face_handle f = *fit;
+        B.begin_facet();
+        F_circulator he = f->facet_begin();
+        F_circulator end = he;
+        CGAL_For_all(he,end)
+        {
+            Vertex_handle v = he->vertex();
+            B.add_vertex_to_facet(vertex_map[v]);
+        }
+        B.end_facet();
+    }
+    B.end_surface();
+}
