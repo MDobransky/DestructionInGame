@@ -51,7 +51,7 @@ namespace gg
         std::vector<std::unique_ptr<MObject>> *m_objects;
         std::vector<MObject *> m_toDelete;
         std::deque<std::tuple<MObject *, irr::scene::IMesh *, irr::core::vector3df>> m_subtractionTasks;
-        std::deque<std::tuple<MObject *, btVector3, MeshManipulators::Nef_polyhedron,
+        std::deque<std::tuple<MObject *, btVector3, btQuaternion, MeshManipulators::Nef_polyhedron,
                                             irr::scene::IMesh *, int>> m_subtractionResults;
         std::mutex m_taskQueueMutex;
         std::mutex m_resultQueueMutex;

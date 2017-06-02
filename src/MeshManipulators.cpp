@@ -172,9 +172,10 @@ IMesh *gg::MeshManipulators::convertMesh(voro::voronoicell &cell)
     return mesh;
 }
 
-gg::MeshManipulators::Nef_polyhedron
+std::tuple<gg::MeshManipulators::Nef_polyhedron, gg::MeshManipulators::Nef_polyhedron>
     gg::MeshManipulators::subtractMesh(gg::MeshManipulators::Nef_polyhedron &nef, IMesh *what, vector3df position)
 {
+    Nef_polyhedron intersection;
     if(what)
     {
         Polyhedron poly_what;
@@ -184,11 +185,12 @@ gg::MeshManipulators::Nef_polyhedron
         if(poly_what.is_closed())
         {
             Nef_polyhedron N2(poly_what);
-            Nef_polyhedron N3(nef - N2);
-            return std::move(N3);
+            Nef_polyhedron difference(nef - N2);
+            intersection = nef * N2;
+            return std::move(std::make_tuple(std::move(difference), std::move(intersection)));
         }
     }
-    return std::move(nef);
+    return std::move(std::make_tuple(std::move(nef), std::move(intersection)));
 }
 
 gg::MeshManipulators::Nef_polyhedron gg::MeshManipulators::makeNefPolyhedron(IMesh *obj)

@@ -46,7 +46,7 @@ namespace gg
 
         static irr::scene::IMesh *convertMesh(voro::voronoicell &cell);
 
-        static Nef_polyhedron subtractMesh(Nef_polyhedron &nef, irr::scene::IMesh *what, irr::core::vector3df position);
+        static std::tuple<Nef_polyhedron, Nef_polyhedron> subtractMesh(Nef_polyhedron &nef, irr::scene::IMesh *what, irr::core::vector3df position);
 
         static Nef_polyhedron makeNefPolyhedron(irr::scene::IMesh *);
 

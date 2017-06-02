@@ -65,10 +65,10 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
             other->removeNode();
             other->setDeleted();
         }
-        if(obj->isMesh() && (other->getMaterial() != MObject::Material::GROUND || impulse > 200 || other->getMaterial() == MObject::Material::SHOT))
+        if(obj->isMesh() && ((other->getMaterial() != MObject::Material::GROUND && impulse > 100)|| impulse > 200 || other->getMaterial() == MObject::Material::SHOT))
         {
             using namespace voro;
-                float cube_size = 4.0f;
+                float cube_size = 2.0f;
                 vector3df cube_min(-cube_size, -cube_size, -cube_size);
                 vector3df cube_max(cube_size, cube_size, cube_size);
 
@@ -81,7 +81,7 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
                 con.put(0,0,0,0);
                 for(auto&& i : {1, 2})
                 {
-                 //   con.put(i,std::fmod(rand(),cube_size) + cube_min.X, std::fmod(rand(),cube_size) + cube_min.Y, std::fmod(rand(),cube_size) + cube_min.Z);
+                    con.put(i,std::fmod(rand(),cube_size) + cube_min.X, std::fmod(rand(),cube_size) + cube_min.Y, std::fmod(rand(),cube_size) + cube_min.Z);
                 }
                 c_loop_all loop(con);
                 loop.start();
@@ -92,7 +92,7 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point, btV
 
             std::lock_guard<std::mutex> lock (m_taskQueueMutex);
             vector3df relative_position(vector3df(point.x(),point.y(),point.z()) - obj->getNode()->getPosition());
-            generateDebree(debree_mesh, point, btVector3(0,0,0), obj->getMaterial());
+            //generateDebree(debree_mesh, point, btVector3(0,0,0), obj->getMaterial());
             m_subtractionTasks.push_back(std::make_tuple(obj, debree_mesh, relative_position));
         }
     }
@@ -140,28 +140,29 @@ void gg::MCollisionResolver::meshSubtractor()
                 position = quat.makeInverse() * position;
                 //IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addSphereSceneNode(1);
                 //Node->setPosition(obj->getNode()->getAbsolutePosition()+ position + obj->translation);
-                MeshManipulators::Nef_polyhedron newPoly = MeshManipulators::subtractMesh(*oldPoly, mesh, position + obj->translation);
+                MeshManipulators::Nef_polyhedron newPoly, debree;
+                std::tie(newPoly, debree) = MeshManipulators::subtractMesh(*oldPoly, mesh, position + obj->translation);
                 std::vector<MeshManipulators::Nef_polyhedron> newNefPolyhedrons(std::move(MeshManipulators::splitPolyhedron(std::move(newPoly))));
+                std::vector<MeshManipulators::Nef_polyhedron> debreeVector(std::move(MeshManipulators::splitPolyhedron(std::move(debree))));
+                newNefPolyhedrons.insert(newNefPolyhedrons.end(), debreeVector.begin(), debreeVector.end());
                 for(size_t i = 0; i < newNefPolyhedrons.size(); i++)
                 {
                     IMesh* new_mesh;
                     vector3df center;
                     std::tie(new_mesh, center) = MeshManipulators::convertPolyToMesh(newNefPolyhedrons[i]);
-                    btVector3 btCenter(center.X, center.Y, center.Z);
                     std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
                     if(i == 0)
                     {
                         m_subtractionResults.push_back(std::make_tuple(obj,
                                                                        obj->getRigid()->getCenterOfMassPosition(),
+                                                                       obj->getRigid()->getOrientation(),
                                                                        std::move(newNefPolyhedrons[0]),
                                                                        new_mesh,
                                                                        old_version));
                     }
                     else
                     {
-                        //btVector3 oldPosition(obj->getNode()->getPosition().X,obj->getNode()->getPosition().Y,obj->getNode()->getPosition().Z);
                         vector3df newPosition;
-                        //newPosition = obj->getPolyhedronTransform() ;
                         newPosition = quaternion(obj->getNode()->getRelativeTransformation()) * center;
                         newPosition += obj->getNode()->getPosition();
                         MObject* newObj = new MObject(NULL, NULL, obj->getMaterial(), false);
@@ -169,6 +170,7 @@ void gg::MCollisionResolver::meshSubtractor()
                         m_subtractionResults.push_back(
                                     std::make_tuple(newObj,
                                                     btVector3(newPosition.X, newPosition.Y, newPosition.Z),
+                                                    obj->getRigid()->getOrientation(),
                                                     std::move(newNefPolyhedrons[i]),
                                                     new_mesh,
                                                     old_version));
@@ -195,12 +197,13 @@ void gg::MCollisionResolver::subtractionApplier()
     IMesh* new_mesh = NULL;
     btVector3 position;
     int old_version;
+    btQuaternion rotation;
     MeshManipulators::Nef_polyhedron newPoly;
     {
         std::lock_guard<std::mutex> resLock(m_resultQueueMutex);
         if(m_subtractionResults.size() > 0)
         {
-            std::tie(obj,position, newPoly, new_mesh, old_version) = m_subtractionResults.front();
+            std::tie(obj, position, rotation, newPoly, new_mesh, old_version) = m_subtractionResults.front();
             m_subtractionResults.pop_front();
         }
     }
@@ -232,6 +235,9 @@ void gg::MCollisionResolver::subtractionApplier()
             vector3df translation = obj->translation;
             obj = m_objectCreator->createMeshRigidBody(new_mesh, position, 10, obj->getMaterial(), std::move(newPoly));
             obj->translation = translation;
+            btTransform tr(rotation);
+            tr.setOrigin(position);
+            obj->getRigid()->setWorldTransform(tr);
             m_objects->push_back(std::unique_ptr<MObject>(obj));
             m_btWorld->addRigidBody(obj->getRigid());
         }
