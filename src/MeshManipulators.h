@@ -40,7 +40,9 @@ namespace gg
 
         static std::tuple<irr::scene::IMesh *, irr::core::vector3df> convertPolyToMesh(Nef_polyhedron &poly);
 
-        static btCollisionShape *convertMesh(irr::scene::IMeshSceneNode *);
+        static btCollisionShape *convertMesh(IMesh* mesh);
+
+        static btCollisionShape *convertMesh(irr::scene::IMeshSceneNode *node);
 
         static btCollisionShape *nefToShape(Nef_polyhedron &poly);
 

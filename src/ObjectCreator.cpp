@@ -31,8 +31,6 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     }
 
     std::string input(items[0]);
-    std::string texture(items[1]);
-    //char material(items[2][0]);
     btVector3 position(numbers[0], numbers[1], numbers[2]);
     core::vector3df rotation(numbers[3], numbers[4], numbers[5]);
     core::vector3df scale(numbers[6], numbers[7], numbers[8]);
@@ -63,10 +61,8 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
     // Create the shape
-    Timer t;//MeshManipulators::nefToShape(polyhedron);
     btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
-    std::cout << t.elapsed() << "\n";
-    //Shape->setMargin(0.05f);
+    Shape->setMargin(0.01f);
 
     // Add mass
     btVector3 localInertia;
@@ -157,9 +153,7 @@ gg::MObject *gg::MObjectCreator::createSolidGround(std::vector<std::string> &&it
         numbers[i] = std::stof(items[i + 3]);
     }
 
-    //std::string input(items[0]);
     std::string texture(items[1]);
-    //char material(items[2][0]);
     btVector3 position(numbers[0], numbers[1], numbers[2]);
     core::vector3df rotation(numbers[3], numbers[4], numbers[5]);
     core::vector3df scale(numbers[6], numbers[7], numbers[8]);
@@ -240,37 +234,7 @@ gg::MObject *gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
     return obj;
 }
 
-gg::MObject *
-    gg::MObjectCreator::createMeshRigidBody(IMesh *mesh, btVector3 position, btScalar mass,
-                                            MObject::Material material)
-{
-    IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
-    Node->setPosition(vector3df(position.getX(), position.getY(), position.getZ()));
-    Node->setMaterialType(EMT_SOLID);
-    Node->setMaterialFlag(EMF_LIGHTING, 0);
-    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-
-    btTransform Transform;
-    Transform.setIdentity();
-    Transform.setOrigin(position);
-
-    btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
-
-    btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
-    //Shape->setMargin(0.05f);
-
-    btVector3 localInertia;
-    Shape->calculateLocalInertia(mass, localInertia);
-
-    btRigidBody *rigidBody = new btRigidBody(mass, motionState, Shape, localInertia);
-
-    MObject *fragment = new MObject(rigidBody, Node, material, true);
-    rigidBody->setUserPointer((void *) (fragment));
-
-    return fragment;
-}
-
-gg::MObject *gg::MObjectCreator::createMeshRigidBody(IMesh* mesh, btVector3 position, btScalar mass,
+gg::MObject *gg::MObjectCreator::createMeshRigidBodyWithTmpShape(IMesh* mesh, btVector3 position, btScalar mass,
                                                      gg::MObject::Material material,
                                                      gg::MeshManipulators::Nef_polyhedron &&poly)
 {
@@ -286,8 +250,7 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(IMesh* mesh, btVector3 posi
 
     btDefaultMotionState *motionState = new btDefaultMotionState(Transform);
 
-    btCollisionShape *Shape = new btHACDCompoundShape(MeshManipulators::convertMesh(Node));
-    Shape->setMargin(0.05f);
+    btCollisionShape *Shape = new btSphereShape(mesh->getBoundingBox().getExtent().getLength());
 
     btVector3 localInertia;
     Shape->calculateLocalInertia(mass, localInertia);

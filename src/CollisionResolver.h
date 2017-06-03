@@ -18,6 +18,7 @@
 #include <mutex>
 #include <deque>
 #include <atomic>
+#include <queue>
 
 namespace gg
 {
@@ -36,14 +37,18 @@ namespace gg
         void resolveAll();
 
     private:
-        void resolveCollision(MObject *object, btVector3 point, btVector3 from, btScalar impulse,
+        void resolveCollision(MObject *object, btVector3 point, btScalar impulse,
                               MObject *other_object);
 
         void generateDebree(irr::scene::IMesh *, btVector3 point, btVector3 impulse, MObject::Material);
 
-        void meshSubtractor();
+        void meshSubtractor(); //thread
 
-        void subtractionApplier();
+        void meshDecomposer(); //thread
+
+        void subtractionApplier(); //call every loop
+
+        void decompositionApplier(); //call every loop
 
         irr::IrrlichtDevice *m_irrDevice;
         btDiscreteDynamicsWorld *m_btWorld;
@@ -51,12 +56,16 @@ namespace gg
         std::vector<std::unique_ptr<MObject>> *m_objects;
         std::vector<MObject *> m_toDelete;
         std::deque<std::tuple<MObject *, irr::scene::IMesh *, irr::core::vector3df>> m_subtractionTasks;
-        std::deque<std::tuple<MObject *, btVector3, btQuaternion, MeshManipulators::Nef_polyhedron,
+        std::queue<std::tuple<MObject *, btVector3, btQuaternion, MeshManipulators::Nef_polyhedron,
                                             irr::scene::IMesh *, int>> m_subtractionResults;
-        std::mutex m_taskQueueMutex;
-        std::mutex m_resultQueueMutex;
-        std::thread m_subtractor1;
-        std::thread m_subtractor2;
+        std::mutex m_subtractionTasksMutex;
+        std::mutex m_subtractionResultsMutex;
+        std::queue<std::tuple<MObject *, irr::scene::IMesh *>> m_decompositionTasks;
+        std::queue<std::tuple<MObject *, btCollisionShape *>> m_decompositionResults;
+        std::mutex m_decompositionTasksMutex;
+        std::mutex m_decompositionResultsMutex;
+        std::thread m_subtractor;
+        std::thread m_decomposer;
         std::atomic<bool> m_done;
     };
 

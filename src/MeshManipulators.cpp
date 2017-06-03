@@ -83,11 +83,16 @@ std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshM
 
 btCollisionShape *gg::MeshManipulators::convertMesh(IMeshSceneNode *node)
 {
+    return convertMesh(node->getMesh());
+}
+
+btCollisionShape *gg::MeshManipulators::convertMesh(IMesh *mesh)
+{
     btTriangleMesh *btMesh = new btTriangleMesh();
 
-    for(irr::u32 j = 0; j < node->getMesh()->getMeshBufferCount(); j++)
+    for(irr::u32 j = 0; j < mesh->getMeshBufferCount(); j++)
     {
-        IMeshBuffer *meshBuffer = node->getMesh()->getMeshBuffer(j);
+        IMeshBuffer *meshBuffer = mesh->getMeshBuffer(j);
         S3DVertex *vertices = (S3DVertex *) meshBuffer->getVertices();
         u16 *indices = meshBuffer->getIndices();
 

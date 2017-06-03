@@ -34,10 +34,7 @@ namespace gg
 
         MObject *shoot(btVector3 position, btVector3 impulse);
 
-        MObject *createMeshRigidBody(irr::scene::IMesh *mesh, btVector3 position,
-                                     btScalar mass, MObject::Material material);
-
-        MObject *createMeshRigidBody(irr::scene::IMesh *mesh, btVector3 position,
+        MObject *createMeshRigidBodyWithTmpShape(irr::scene::IMesh *mesh, btVector3 position,
                                      btScalar mass, MObject::Material material,
                                      MeshManipulators::Nef_polyhedron &&poly);
 
