@@ -41,6 +41,8 @@ namespace gg
         };
         std::mutex m_mutex;
         std::atomic_int version;
+        std::atomic_bool deleted {false};
+        std::atomic_int reference_count;
 
         inline Material getMaterial()
         { return m_material; }
@@ -95,10 +97,17 @@ namespace gg
                     delete m_rigidBody->getCollisionShape();
                 }
             }
+            if(m_irrSceneNode)
+            {
+                m_irrSceneNode->remove();
+                m_irrSceneNode = 0;
+            }
         }
 
         MObject() : m_empty(true), m_deleted(false)
-        {}
+        {
+            reference_count.store(0);
+        }
 
         MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, bool mesh = false) : m_rigidBody(
                 std::unique_ptr<btRigidBody>(rb)), m_irrSceneNode(sn), m_isMesh(mesh)
@@ -113,6 +122,7 @@ namespace gg
                 m_polyhedronTransformation = sn->getRelativeTransformation();
             }
             version.store(0);
+            reference_count.store(0);
         }
 
         MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Material mat, bool mesh = true) : m_rigidBody(
@@ -128,6 +138,7 @@ namespace gg
                 m_polyhedronTransformation = sn->getRelativeTransformation();
             }
             version.store(0);
+            reference_count.store(0);
         }
 
         MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Material mat, Nef_polyhedron &&nef) : m_rigidBody(
@@ -138,6 +149,7 @@ namespace gg
             m_isMesh = true;
             m_polyhedronTransformation = sn->getRelativeTransformation();
             version.store(0);
+            reference_count.store(0);
         }
 
         MObject(MObject &&other)
@@ -150,6 +162,7 @@ namespace gg
             m_polyhedronTransformation = std::move(other.m_polyhedronTransformation);
             translation = other.translation;
             version.store(0);
+            reference_count.store(0);
         }
 
         MObject(MObject &) = delete;

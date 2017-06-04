@@ -36,8 +36,6 @@ namespace gg
         typedef Polyhedron::HalfedgeDS HalfedgeDS;
         typedef CGAL::Nef_polyhedron_3<Kernel, CGAL::SNC_indexed_items> Nef_polyhedron;
 
-        static std::tuple<irr::scene::IMesh *, irr::core::vector3df> convertPolyToMesh(Polyhedron &poly);
-
         static std::tuple<irr::scene::IMesh *, irr::core::vector3df> convertPolyToMesh(Nef_polyhedron &poly);
 
         static btCollisionShape *convertMesh(IMesh* mesh);
@@ -82,7 +80,6 @@ namespace gg
         class SplitModifier : public CGAL::Modifier_base<HalfedgeDS>
         {
         private:
-            typedef typename Kernel::Triangle_3 Triangle;
             typedef typename HalfedgeDS::Face_handle Face_handle;
             typedef typename HalfedgeDS::Vertex_handle Vertex_handle;
             typedef typename HalfedgeDS::Halfedge_handle Halfedge_handle;
@@ -110,9 +107,7 @@ namespace gg
         class PolyhedronSplitter
         {
         public:
-            typedef typename Polyhedron::HalfedgeDS HalfedgeDS;
             typedef typename Polyhedron::Halfedge_handle Halfedge_handle;
-            typedef typename Polyhedron::Halfedge_iterator Halfedge_iterator;
 
             PolyhedronSplitter() {}
             ~PolyhedronSplitter() {}

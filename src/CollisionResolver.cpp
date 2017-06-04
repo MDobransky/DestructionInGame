@@ -26,10 +26,10 @@ std::ostream& operator<<(std::ostream& os, const btVector3& v)
 
 gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice* irrDev, btDiscreteDynamicsWorld* btDDW,
                                            MObjectCreator* creator, std::vector<std::unique_ptr<MObject>>* objs)
-    : m_irrDevice(irrDev),
-      m_btWorld(btDDW),
-      m_objectCreator(creator),
-      m_objects(objs)
+        : m_irrDevice(irrDev),
+          m_btWorld(btDDW),
+          m_objectCreator(creator),
+          m_objects(objs)
 {
     m_done.store(false);
     m_subtractor = std::move(std::thread([this] { meshSubtractor(); }));
@@ -46,10 +46,10 @@ gg::MCollisionResolver::~MCollisionResolver()
 void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point,
                                               btScalar impulse, MObject* other)
 {
-    std::lock_guard<std::mutex> objlock(obj->m_mutex);
-    std::lock_guard<std::mutex> otherlock(other->m_mutex);
+    //std::lock_guard<std::mutex> objlock(obj->m_mutex);
+    //std::lock_guard<std::mutex> otherlock(other->m_mutex);
     MObject::Material material = obj->getMaterial();
-    if(other->isDeleted())
+    if(other->deleted)
     {
         return;
     }
@@ -62,37 +62,37 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point,
         if(other->getMaterial() == MObject::Material::SHOT)
         {
             m_btWorld->removeCollisionObject(other->getRigid());
-            other->removeNode();
-            other->setDeleted();
+            other->deleted = true;
         }
         if(obj->isMesh() && ((other->getMaterial() != MObject::Material::GROUND && impulse > 100)|| impulse > 200 || other->getMaterial() == MObject::Material::SHOT))
         {
             using namespace voro;
-                float cube_size = impulse/10.f;
-                vector3df cube_min(-cube_size, -cube_size, -cube_size);
-                vector3df cube_max(cube_size, cube_size, cube_size);
+            float cube_size = impulse/10.f;
+            vector3df cube_min(-cube_size, -cube_size, -cube_size);
+            vector3df cube_max(cube_size, cube_size, cube_size);
 
-                container con(cube_min.X, cube_max.X,
-                              cube_min.Y, cube_max.Y,
-                              cube_min.Z, cube_max.Z,
-                              8,8,8,
-                              false,false,false,
-                              8);
+            container con(cube_min.X, cube_max.X,
+                          cube_min.Y, cube_max.Y,
+                          cube_min.Z, cube_max.Z,
+                          8,8,8,
+                          false,false,false,
+                          8);
 
-                con.put(0,0,0,0);
-                for(auto&& i : {1,2})
-                {
-                     con.put(i,std::fmod(rand(),cube_size*2) + cube_min.X, std::fmod(rand(),cube_size*2) + cube_min.Y, std::fmod(rand(),cube_size*2) + cube_min.Z);
-                }
+            con.put(0,0,0,0);
+            for(auto&& i : {1,2})
+            {
+                con.put(i,std::fmod(rand(),cube_size*2) + cube_min.X, std::fmod(rand(),cube_size*2) + cube_min.Y, std::fmod(rand(),cube_size*2) + cube_min.Z);
+            }
 
-                c_loop_all loop(con);
-                loop.start();
-                voronoicell c;
-                con.compute_cell(c,loop);
-                IMesh* debree_mesh = gg::MeshManipulators::convertMesh(c);
+            c_loop_all loop(con);
+            loop.start();
+            voronoicell c;
+            con.compute_cell(c,loop);
+            IMesh* debree_mesh = gg::MeshManipulators::convertMesh(c);
 
             std::lock_guard<std::mutex> lock (m_subtractionTasksMutex);
             vector3df relative_position(vector3df(point.x(),point.y(),point.z()) - obj->getNode()->getPosition());
+            obj->reference_count++;
             m_subtractionTasks.push_back(std::make_tuple(obj, debree_mesh, relative_position));
         }
     }
@@ -105,7 +105,6 @@ void gg::MCollisionResolver::meshSubtractor()
     MObject* obj;
     IMesh* mesh;
     vector3df position;
-    MeshManipulators::Nef_polyhedron* oldPoly;
     std::unique_lock<std::mutex> taskLock(m_subtractionTasksMutex, std::defer_lock);
     while(!m_done)
     {
@@ -115,12 +114,11 @@ void gg::MCollisionResolver::meshSubtractor()
             std::tie(obj, mesh, position) = m_subtractionTasks.front();
             m_subtractionTasks.pop_front();
             taskLock.unlock();
-            std::unique_lock<std::mutex> objlock(obj->m_mutex);
-            if(obj->isDeleted())
+
+            if(obj->deleted)
             {
-              return;
+                return;
             }
-            oldPoly = &obj->getPolyhedron();
             int old_version = obj->version.load();
             try
             {
@@ -129,14 +127,15 @@ void gg::MCollisionResolver::meshSubtractor()
                 position = quat * position;
                 quat = obj->getPolyhedronTransform();
                 position = quat.makeInverse() * position + obj->translation;
-                objlock.unlock();
 
                 MeshManipulators::Nef_polyhedron newPoly, debree;
-                std::tie(newPoly, debree) = MeshManipulators::subtractMesh(*oldPoly, mesh, position);
+                {
+                    std::lock_guard<std::mutex> objlock(obj->m_mutex);
+                    std::tie(newPoly, debree) = MeshManipulators::subtractMesh(obj->getPolyhedron(), mesh, position);
+                }
                 std::vector<MeshManipulators::Nef_polyhedron> newNefPolyhedrons(std::move(MeshManipulators::splitPolyhedron(std::move(newPoly))));
                 std::vector<MeshManipulators::Nef_polyhedron> debreeVector(std::move(MeshManipulators::splitPolyhedron(std::move(debree))));
                 newNefPolyhedrons.insert(newNefPolyhedrons.end(), debreeVector.begin(), debreeVector.end());
-                objlock.lock();
                 for(size_t i = 0; i < newNefPolyhedrons.size(); i++)
                 {
                     IMesh* new_mesh;
@@ -145,12 +144,13 @@ void gg::MCollisionResolver::meshSubtractor()
                     std::lock_guard<std::mutex> resLock(m_subtractionResultsMutex);
                     if(i == 0)
                     {
+                        obj->reference_count++;
                         m_subtractionResults.push(std::make_tuple(obj,
-                                                                       obj->getRigid()->getCenterOfMassPosition(),
-                                                                       obj->getRigid()->getOrientation(),
-                                                                       std::move(newNefPolyhedrons[0]),
-                                                                       new_mesh,
-                                                                       old_version));
+                                                                  obj->getRigid()->getCenterOfMassPosition(),
+                                                                  obj->getRigid()->getOrientation(),
+                                                                  std::move(newNefPolyhedrons[0]),
+                                                                  new_mesh,
+                                                                  old_version));
                     }
                     else
                     {
@@ -159,20 +159,22 @@ void gg::MCollisionResolver::meshSubtractor()
                         newPosition += obj->getNode()->getPosition();
                         MObject* newObj = new MObject(NULL, NULL, obj->getMaterial(), false);
                         newObj->translation = center;
+                        newObj->reference_count++;
                         m_subtractionResults.push(
-                                    std::make_tuple(newObj,
-                                                    btVector3(newPosition.X, newPosition.Y, newPosition.Z),
-                                                    obj->getRigid()->getOrientation(),
-                                                    std::move(newNefPolyhedrons[i]),
-                                                    new_mesh,
-                                                    old_version));
+                                std::make_tuple(newObj,
+                                                btVector3(newPosition.X, newPosition.Y, newPosition.Z),
+                                                obj->getRigid()->getOrientation(),
+                                                std::move(newNefPolyhedrons[i]),
+                                                new_mesh,
+                                                old_version));
                     }
                 }
             }
-           catch(...)
-           {
-               std::cout << "FAILED\n";
-           }
+            catch(...)
+            {
+                std::cout << "FAILED\n";
+            }
+            obj->reference_count--;
         }
         else
         {
@@ -231,9 +233,10 @@ void gg::MCollisionResolver::subtractionApplier()
         {
             return;
         }
-        std::lock_guard<std::mutex> objLock(obj->m_mutex);
-        obj->setPolyhedron(std::move(newPoly));
-
+        {
+            std::lock_guard<std::mutex> objLock(obj->m_mutex);
+            obj->setPolyhedron(std::move(newPoly));
+        }
         if(obj->getRigid())
         {
             IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
@@ -245,17 +248,23 @@ void gg::MCollisionResolver::subtractionApplier()
         }
         else
         {
-            vector3df translation = obj->translation;
-            obj = m_objectCreator->createMeshRigidBodyWithTmpShape(new_mesh, position, 10, obj->getMaterial(), std::move(newPoly));
-            obj->translation = translation;
+            std::unique_ptr<MObject> object(m_objectCreator->createMeshRigidBodyWithTmpShape(new_mesh, position, 10, obj->getMaterial(), std::move(newPoly)));
+            object->reference_count.store(obj->reference_count);
+            object->translation = obj->translation;
+            delete obj;
+            obj = object.get();
             btTransform tr(rotation);
             tr.setOrigin(position);
             obj->getRigid()->setWorldTransform(tr);
-            m_objects->push_back(std::unique_ptr<MObject>(obj));
+            m_objects->push_back(std::move(object));
             m_btWorld->addRigidBody(obj->getRigid());
         }
         std::unique_lock<std::mutex> taskLock(m_decompositionTasksMutex);
         m_decompositionTasks.push(std::make_tuple(obj, new_mesh));
+    }
+    else if (obj)
+    {
+        obj->deleted = true;
     }
 }
 
@@ -272,28 +281,9 @@ void gg::MCollisionResolver::decompositionApplier()
         {
             delete obj->getRigid()->getCollisionShape();
             obj->getRigid()->setCollisionShape(new_shape);
+            obj->reference_count--;
         }
     }
-}
-
-bool gg::MCollisionResolver::isInside(btRigidBody* body, btVector3 point,btVector3 from)
-{
-    int in = 0;
-    btVector3 last = from;
-
-    btCollisionWorld::AllHitsRayResultCallback clbck(from, point); //entering body
-    m_btWorld->rayTest(from, point, clbck);
-    for(int i = 0; i < clbck.m_hitPointWorld.size(); i++)
-    {
-        if(int(last.getX()*100) != int(clbck.m_hitPointWorld[i].getX()*100) || //this can fail on extra thin walls
-           int(last.getY()*100) != int(clbck.m_hitPointWorld[i].getY()*100) || //we have to filter almost equal positions because edges and vertices count multiple times
-           int(last.getZ()*100) != int(clbck.m_hitPointWorld[i].getZ()*100))
-        {
-            last = clbck.m_hitPointWorld[i];
-            in++;
-        }
-    }
-    return in%2;
 }
 
 void gg::MCollisionResolver::resolveAll()

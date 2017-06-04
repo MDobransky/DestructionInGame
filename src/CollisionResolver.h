@@ -32,15 +32,11 @@ namespace gg
 
         ~MCollisionResolver();
 
-        bool isInside(btRigidBody *body, btVector3 point, btVector3 from);
-
         void resolveAll();
 
     private:
         void resolveCollision(MObject *object, btVector3 point, btScalar impulse,
                               MObject *other_object);
-
-        void generateDebree(irr::scene::IMesh *, btVector3 point, btVector3 impulse, MObject::Material);
 
         void meshSubtractor(); //thread
 
@@ -54,7 +50,6 @@ namespace gg
         btDiscreteDynamicsWorld *m_btWorld;
         MObjectCreator *m_objectCreator;
         std::vector<std::unique_ptr<MObject>> *m_objects;
-        std::vector<MObject *> m_toDelete;
         std::deque<std::tuple<MObject *, irr::scene::IMesh *, irr::core::vector3df>> m_subtractionTasks;
         std::queue<std::tuple<MObject *, btVector3, btQuaternion, MeshManipulators::Nef_polyhedron,
                                             irr::scene::IMesh *, int>> m_subtractionResults;

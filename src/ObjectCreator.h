@@ -17,6 +17,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace gg
 {
@@ -26,15 +27,15 @@ namespace gg
     public:
         MObjectCreator(irr::IrrlichtDevice *);
 
-        MObject *createMeshRigidBody(std::vector<std::string> &&);
+        std::unique_ptr<MObject> createMeshRigidBody(std::vector<std::string> &&);
 
-        MObject *createBoxedRigidBody(std::vector<std::string> &&);
+        std::unique_ptr<MObject> createBoxedRigidBody(std::vector<std::string> &&);
 
-        MObject *createSolidGround(std::vector<std::string> &&);
+        std::unique_ptr<MObject> createSolidGround(std::vector<std::string> &&);
 
-        MObject *shoot(btVector3 position, btVector3 impulse);
+        std::unique_ptr<MObject> shoot(btVector3 position, btVector3 impulse);
 
-        MObject *createMeshRigidBodyWithTmpShape(irr::scene::IMesh *mesh, btVector3 position,
+        std::unique_ptr<MObject> createMeshRigidBodyWithTmpShape(irr::scene::IMesh *mesh, btVector3 position,
                                      btScalar mass, MObject::Material material,
                                      MeshManipulators::Nef_polyhedron &&poly);
 

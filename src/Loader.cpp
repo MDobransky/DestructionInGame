@@ -22,7 +22,6 @@ std::vector<std::unique_ptr<gg::MObject>> gg::MLoader::load(std::string level)
     //open level file
     std::fstream fin;
     fin.open(level, std::fstream::in);
-    MObject *obj;
 
     //skybox
     std::getline(fin, current_line);
@@ -33,18 +32,18 @@ std::vector<std::unique_ptr<gg::MObject>> gg::MLoader::load(std::string level)
 
     //ground
     std::getline(fin, current_line);
-    obj = m_objectCreator->createSolidGround(split(std::stringstream(current_line)));
-    if(obj)
+    std::unique_ptr<MObject> object(m_objectCreator->createSolidGround(split(std::stringstream(current_line))));
+    if(object)
     {
-        m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+        m_objects.push_back(std::move(object));
     }
 
     //ship
     std::getline(fin, current_line);
-    obj = m_objectCreator->createBoxedRigidBody(split(std::stringstream(current_line)));
+    std::unique_ptr<MObject> obj(m_objectCreator->createBoxedRigidBody(split(std::stringstream(current_line))));
     if(obj)
     {
-        m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+        m_objects.push_back(std::move(obj));
     }
 
     //buildings
@@ -52,15 +51,15 @@ std::vector<std::unique_ptr<gg::MObject>> gg::MLoader::load(std::string level)
     {
         if(current_line != "")
         {
-            MObject *obj = m_objectCreator->createMeshRigidBody(split(std::stringstream(current_line)));
+            std::unique_ptr<MObject> obj(m_objectCreator->createMeshRigidBody(split(std::stringstream(current_line))));
             if(obj)
             {
-                m_objects.push_back(std::unique_ptr<gg::MObject>(obj));
+                m_objects.push_back(std::move(obj));
             }
         }
     }
     fin.close();
-    return std::move(std::move(m_objects));
+    return std::move(m_objects);
 }
 
 bool gg::MLoader::loadSkybox(std::vector<std::string> &&files)

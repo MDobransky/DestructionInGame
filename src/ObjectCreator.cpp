@@ -1,9 +1,4 @@
 #include "ObjectCreator.h"
-#include "MeshManipulators.h"
-
-#include <iostream>
-#include <cmath>
-#include <map>
 
 using namespace irr;
 using namespace core;
@@ -16,12 +11,12 @@ gg::MObjectCreator::MObjectCreator(IrrlichtDevice *irr) : m_irrDevice(irr)
 {
 }
 
-gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&items)
+std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&items)
 {
     if(items.size() != 13)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
-        return new MObject();
+        return nullptr;
     }
 
     float numbers[10];
@@ -73,20 +68,20 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&
 
     MObject::Material material = MObject::Material::BUILDING;
 
-    MObject *obj = new MObject(rigidBody, Node, material, std::move(polyhedron));
+    std::unique_ptr<gg::MObject> obj(new MObject(rigidBody, Node, material, std::move(polyhedron)));
     // Store a pointer to the irrlicht node so we can update it later
-    rigidBody->setUserPointer((void *) (obj));
+    rigidBody->setUserPointer((void *) (obj.get()));
 
 
-    return obj;
+    return std::move(obj);
 }
 
-gg::MObject *gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string> &&items)
+std::unique_ptr<gg::MObject> gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string> &&items)
 {
     if(items.size() != 13)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
-        return new MObject();
+        return nullptr;
     }
 
     float numbers[10];
@@ -133,18 +128,18 @@ gg::MObject *gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string> &
 
     MObject::Material material = MObject::Material::SHIP;
 
-    MObject *obj = new MObject(rigidBody, Node, material, false);
-    rigidBody->setUserPointer((void *) (obj));
+    std::unique_ptr<MObject> obj(new MObject(rigidBody, Node, material, false));
+    rigidBody->setUserPointer((void *) (obj.get()));
 
-    return obj;
+    return std::move(obj);
 }
 
-gg::MObject *gg::MObjectCreator::createSolidGround(std::vector<std::string> &&items)
+std::unique_ptr<gg::MObject> gg::MObjectCreator::createSolidGround(std::vector<std::string> &&items)
 {
     if(items.size() != 13)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
-        return new MObject();
+        return nullptr;
     }
 
     float numbers[10];
@@ -191,14 +186,14 @@ gg::MObject *gg::MObjectCreator::createSolidGround(std::vector<std::string> &&it
     btRigidBody *RigidBody = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
     RigidBody->setGravity(btVector3(0, 0, 0));
 
-    MObject *obj = new MObject(RigidBody, Node, MObject::Material::GROUND, false);
+    std::unique_ptr<MObject> obj(new MObject(RigidBody, Node, MObject::Material::GROUND, false));
 
-    RigidBody->setUserPointer((void *) (obj));
+    RigidBody->setUserPointer((void *) (obj.get()));
 
-    return obj;
+    return std::move(obj);
 }
 
-gg::MObject *gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
+std::unique_ptr<gg::MObject> gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
 {
     ///bullet size
     ISceneNode *Node = m_irrDevice->getSceneManager()->addLightSceneNode();
@@ -222,19 +217,19 @@ gg::MObject *gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
     btRigidBody *bullet = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
     bullet->applyImpulse(impulse, position);
 
-    MObject *obj = new MObject(bullet, Node, MObject::Material::SHOT, false);
+    std::unique_ptr<MObject> obj(new MObject(bullet, Node, MObject::Material::SHOT, false));
 
-    bullet->setUserPointer((void *) (obj));
+    bullet->setUserPointer((void *) (obj.get()));
 
     ISceneNode *nodeB = m_irrDevice->getSceneManager()->addBillboardSceneNode(Node, core::dimension2d<f32>(0.5, 0.5));
     nodeB->setMaterialFlag(video::EMF_LIGHTING, false);
     nodeB->setMaterialType(video::EMT_TRANSPARENT_ADD_COLOR);
     nodeB->setMaterialTexture(0, m_irrDevice->getVideoDriver()->getTexture("media/shot3.jpg"));
 
-    return obj;
+    return std::move(obj);
 }
 
-gg::MObject *gg::MObjectCreator::createMeshRigidBodyWithTmpShape(IMesh* mesh, btVector3 position, btScalar mass,
+std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBodyWithTmpShape(IMesh* mesh, btVector3 position, btScalar mass,
                                                      gg::MObject::Material material,
                                                      gg::MeshManipulators::Nef_polyhedron &&poly)
 {
@@ -257,10 +252,10 @@ gg::MObject *gg::MObjectCreator::createMeshRigidBodyWithTmpShape(IMesh* mesh, bt
 
     btRigidBody *rigidBody = new btRigidBody(mass, motionState, Shape, localInertia);
 
-    MObject *fragment = new MObject(rigidBody, Node, material, std::move(poly));
-    rigidBody->setUserPointer((void *) (fragment));
+    std::unique_ptr<MObject> fragment(new MObject(rigidBody, Node, material, std::move(poly)));
+    rigidBody->setUserPointer((void *) (fragment.get()));
 
-    return fragment;
+    return std::move(fragment);
 }
 
 

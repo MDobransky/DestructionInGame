@@ -251,7 +251,7 @@ void gg::MGame::applyEvents()
 
     if(m_events->keyDown(irr::KEY_SPACE))
     {
-        if(m_irrTimer->getTime() - m_shot_time > 500)
+        if(m_irrTimer->getTime() - m_shot_time > 800)
         {
             m_shot_time = m_irrTimer->getTime();
             shoot();
@@ -283,16 +283,17 @@ void gg::MGame::shoot()
     btVector3 position =
             m_btShip->getCenterOfMassPosition() + m_btShip->getWorldTransform().getBasis() * btVector3(0, -0.1, -0.5);
     btVector3 impulse = m_btShip->getWorldTransform().getBasis() * btVector3(0, 0, -75);
-    MObject *shot = m_objectCreator->shoot(position, impulse);
+    std::unique_ptr<MObject> shot(m_objectCreator->shoot(position, impulse));
     m_btWorld->addRigidBody(shot->getRigid());
     shot->getRigid()->setGravity(btVector3(0, 0, 0));
-    m_objects.push_back(std::unique_ptr<gg::MObject>(shot));
+    m_objects.push_back(std::move(shot));
 
 }
 
 void gg::MGame::updatePhysics(u32 TDeltaTime)
 {
-    m_objects.erase(std::remove_if(m_objects.begin(), m_objects.end(), [](auto &&x) { return x->isDeleted(); }),
+    m_objects.erase(std::remove_if(m_objects.begin(), m_objects.end(),
+                                   [](auto &&x) { return x->deleted.load() && x->reference_count == 0; }),
                     m_objects.end());
     m_btWorld->stepSimulation(TDeltaTime * 0.001f, 1, 1. / 60.);
     for(auto &&object : m_objects)
