@@ -39,6 +39,8 @@ gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice* irrDev, btDiscreteDyn
 gg::MCollisionResolver::~MCollisionResolver()
 {
     m_done.store(true);
+    m_subtractionCondVar.notify_one();
+    m_decompositionCondVar.notify_one();
     m_subtractor.join();
     m_decomposer.join();
 }
@@ -94,6 +96,7 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point,
             vector3df relative_position(vector3df(point.x(),point.y(),point.z()) - obj->getNode()->getPosition());
             obj->reference_count++;
             m_subtractionTasks.push_back(std::make_tuple(obj, debree_mesh, relative_position));
+            m_subtractionCondVar.notify_one();
         }
     }
 
@@ -105,10 +108,10 @@ void gg::MCollisionResolver::meshSubtractor()
     MObject* obj;
     IMesh* mesh;
     vector3df position;
-    std::unique_lock<std::mutex> taskLock(m_subtractionTasksMutex, std::defer_lock);
     while(!m_done)
     {
-        taskLock.lock();
+        std::unique_lock<std::mutex> taskLock(m_subtractionTasksMutex);
+        m_subtractionCondVar.wait(taskLock, [this]() { return !m_subtractionTasks.empty() || m_done;});
         if(m_subtractionTasks.size() > 0)
         {
             std::tie(obj, mesh, position) = m_subtractionTasks.front();
@@ -176,11 +179,6 @@ void gg::MCollisionResolver::meshSubtractor()
             }
             obj->reference_count--;
         }
-        else
-        {
-            taskLock.unlock();
-            std::this_thread::yield();
-        }
     }
 }
 
@@ -188,10 +186,11 @@ void gg::MCollisionResolver::meshDecomposer()
 {
     MObject* obj;
     IMesh* mesh;
-    std::unique_lock<std::mutex> taskLock(m_decompositionTasksMutex, std::defer_lock);
+
     while(!m_done)
     {
-        taskLock.lock();
+        std::unique_lock<std::mutex> taskLock(m_decompositionTasksMutex);
+        m_decompositionCondVar.wait(taskLock, [this]() { return !m_decompositionTasks.empty() || m_done;});
         if(m_decompositionTasks.size() > 0)
         {
             std::tie(obj, mesh) = m_decompositionTasks.front();
@@ -201,11 +200,6 @@ void gg::MCollisionResolver::meshDecomposer()
             shape->setMargin(0.01f);
             std::lock_guard<std::mutex> resLock(m_decompositionResultsMutex);
             m_decompositionResults.push(std::make_tuple(obj, shape));
-        }
-        else
-        {
-            taskLock.unlock();
-            std::this_thread::yield();
         }
     }
 }
@@ -261,6 +255,7 @@ void gg::MCollisionResolver::subtractionApplier()
         }
         std::unique_lock<std::mutex> taskLock(m_decompositionTasksMutex);
         m_decompositionTasks.push(std::make_tuple(obj, new_mesh));
+        m_decompositionCondVar.notify_one();
     }
     else if (obj)
     {

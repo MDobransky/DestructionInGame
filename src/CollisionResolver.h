@@ -19,6 +19,8 @@
 #include <deque>
 #include <atomic>
 #include <queue>
+#include <condition_variable>
+
 
 namespace gg
 {
@@ -55,10 +57,12 @@ namespace gg
                                             irr::scene::IMesh *, int>> m_subtractionResults;
         std::mutex m_subtractionTasksMutex;
         std::mutex m_subtractionResultsMutex;
+        std::condition_variable m_subtractionCondVar;
         std::queue<std::tuple<MObject *, irr::scene::IMesh *>> m_decompositionTasks;
         std::queue<std::tuple<MObject *, btCollisionShape *>> m_decompositionResults;
         std::mutex m_decompositionTasksMutex;
         std::mutex m_decompositionResultsMutex;
+        std::condition_variable m_decompositionCondVar;
         std::thread m_subtractor;
         std::thread m_decomposer;
         std::atomic<bool> m_done;
