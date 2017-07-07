@@ -156,7 +156,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createSolidGround(std::vector<s
 
     // Create an Irrlicht cube
     scene::ISceneNode *Node = m_irrDevice->getSceneManager()->addCubeSceneNode(1.0f);
-    Node->setScale(scale*vector3df(10,1,10));
+    Node->setScale(scale);
     Node->setRotation(rotation);
     Node->setMaterialFlag(video::EMF_LIGHTING, 1);
     Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);

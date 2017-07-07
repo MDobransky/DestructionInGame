@@ -68,7 +68,7 @@ namespace gg
         float m_velocity;
         irr::u32 m_shot_time = 0;
         bool m_done = false;
-        bool m_paused = true;
+        bool m_paused = false;
     };
 
     class MDebugDraw : public btIDebugDraw

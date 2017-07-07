@@ -233,19 +233,19 @@ void gg::MGame::applyEvents()
 
     if(m_events->keyDown('Z'))
     {
-        m_velocity -= 1;
-        if(m_velocity < -40)
+        m_velocity -= 5;
+        if(m_velocity < -80)
         {
-            m_velocity = -40;
+            m_velocity = -80;
         }
     }
 
     if(m_events->keyDown('X'))
     {
-        m_velocity += 1;
-        if(m_velocity >= 0)
+        m_velocity += 5;
+        if(m_velocity >= -20)
         {
-            m_velocity = 0;
+            m_velocity = -20;
         }
     }
 
@@ -282,7 +282,7 @@ void gg::MGame::shoot()
 {
     btVector3 position =
             m_btShip->getCenterOfMassPosition() + m_btShip->getWorldTransform().getBasis() * btVector3(0, -0.1, -0.5);
-    btVector3 impulse = m_btShip->getWorldTransform().getBasis() * btVector3(0, 0, -75);
+    btVector3 impulse = m_btShip->getWorldTransform().getBasis() * btVector3(0, 0, -200);
     std::unique_ptr<MObject> shot(m_objectCreator->shoot(position, impulse));
     m_btWorld->addRigidBody(shot->getRigid());
     shot->getRigid()->setGravity(btVector3(0, 0, 0));

@@ -48,8 +48,6 @@ gg::MCollisionResolver::~MCollisionResolver()
 void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point,
                                               btScalar impulse, MObject* other)
 {
-    //std::lock_guard<std::mutex> objlock(obj->m_mutex);
-    //std::lock_guard<std::mutex> otherlock(other->m_mutex);
     MObject::Material material = obj->getMaterial();
     if(other->deleted)
     {
