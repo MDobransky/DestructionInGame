@@ -48,23 +48,23 @@ gg::MCollisionResolver::~MCollisionResolver()
 void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point,
                                               btScalar impulse, MObject* other)
 {
-    MObject::Material material = obj->getMaterial();
+    MObject::Type type = obj->getType();
     if(other->deleted)
     {
         return;
     }
-    else if(material == MObject::Material::GROUND)
+    else if(type == MObject::Type::GROUND)
     {
         return;
     }
-    else if(material != MObject::Material::SHIP && impulse > 0 )
+    else if(type != MObject::Type::SHIP && impulse > 0 )
     {
-        if(other->getMaterial() == MObject::Material::SHOT)
+        if(other->getType() == MObject::Type::SHOT)
         {
             m_btWorld->removeCollisionObject(other->getRigid());
             other->deleted = true;
         }
-        if(obj->isMesh() && ((other->getMaterial() != MObject::Material::GROUND && impulse > 100)|| impulse > 200 || other->getMaterial() == MObject::Material::SHOT))
+        if(obj->isMesh() && ((other->getType() != MObject::Type::GROUND && impulse > 100)|| impulse > 200 || other->getType() == MObject::Type::SHOT))
         {
             using namespace voro;
             float cube_size = impulse/10.f;
@@ -158,7 +158,7 @@ void gg::MCollisionResolver::meshSubtractor()
                         vector3df newPosition;
                         newPosition = quaternion(obj->getNode()->getRelativeTransformation()) * center;
                         newPosition += obj->getNode()->getPosition();
-                        MObject* newObj = new MObject(NULL, NULL, obj->getMaterial(), false);
+                        MObject* newObj = new MObject(NULL, NULL, obj->getType(), false);
                         newObj->translation = center;
                         newObj->reference_count++;
                         m_subtractionResults.push(
@@ -240,7 +240,7 @@ void gg::MCollisionResolver::subtractionApplier()
         }
         else
         {
-            std::unique_ptr<MObject> object(m_objectCreator->createMeshRigidBodyWithTmpShape(new_mesh, position, 10, obj->getMaterial(), std::move(newPoly)));
+            std::unique_ptr<MObject> object(m_objectCreator->createMeshRigidBodyWithTmpShape(new_mesh, position, 10, obj->getType(), std::move(newPoly)));
             object->reference_count.store(obj->reference_count);
             object->translation = obj->translation;
             delete obj;

@@ -36,7 +36,7 @@ namespace gg
         std::unique_ptr<MObject> shoot(btVector3 position, btVector3 impulse);
 
         std::unique_ptr<MObject> createMeshRigidBodyWithTmpShape(irr::scene::IMesh *mesh, btVector3 position,
-                                     btScalar mass, MObject::Material material,
+                                     btScalar mass, MObject::Type type,
                                      MeshManipulators::Nef_polyhedron &&poly);
 
     private:

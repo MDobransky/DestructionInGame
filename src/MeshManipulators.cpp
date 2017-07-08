@@ -3,7 +3,6 @@
 #include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
 #include <CGAL/Inverse_index.h>
 #include <map>
-#include <iostream>
 
 using namespace irr;
 using namespace core;
@@ -289,7 +288,6 @@ std::vector<gg::MeshManipulators::Nef_polyhedron> gg::MeshManipulators::Polyhedr
     {
         if(halfedges.find(he) == halfedges.end())
         {
-            // adds one component as polyhedron
             SplitModifier modifier(he,halfedges);
             Polyhedron component;
             component.delegate(modifier);

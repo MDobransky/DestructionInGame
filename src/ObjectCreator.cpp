@@ -66,9 +66,9 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBody(std::vector
     // Create the rigid body object
     btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
-    MObject::Material material = MObject::Material::BUILDING;
+    MObject::Type type = MObject::Type::BUILDING;
 
-    std::unique_ptr<gg::MObject> obj(new MObject(rigidBody, Node, material, std::move(polyhedron)));
+    std::unique_ptr<gg::MObject> obj(new MObject(rigidBody, Node, type, std::move(polyhedron)));
     // Store a pointer to the irrlicht node so we can update it later
     rigidBody->setUserPointer((void *) (obj.get()));
 
@@ -126,9 +126,9 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createBoxedRigidBody(std::vecto
     // Create the rigid body object
     btRigidBody *rigidBody = new btRigidBody(Mass, motionState, Shape, localInertia);
 
-    MObject::Material material = MObject::Material::SHIP;
+    MObject::Type type = MObject::Type::SHIP;
 
-    std::unique_ptr<MObject> obj(new MObject(rigidBody, Node, material, false));
+    std::unique_ptr<MObject> obj(new MObject(rigidBody, Node, type, false));
     rigidBody->setUserPointer((void *) (obj.get()));
 
     return std::move(obj);
@@ -186,7 +186,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createSolidGround(std::vector<s
     btRigidBody *RigidBody = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
     RigidBody->setGravity(btVector3(0, 0, 0));
 
-    std::unique_ptr<MObject> obj(new MObject(RigidBody, Node, MObject::Material::GROUND, false));
+    std::unique_ptr<MObject> obj(new MObject(RigidBody, Node, MObject::Type::GROUND, false));
 
     RigidBody->setUserPointer((void *) (obj.get()));
 
@@ -217,7 +217,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::shoot(btVector3 position, btVec
     btRigidBody *bullet = new btRigidBody(Mass, MotionState, Shape, LocalInertia);
     bullet->applyImpulse(impulse, position);
 
-    std::unique_ptr<MObject> obj(new MObject(bullet, Node, MObject::Material::SHOT, false));
+    std::unique_ptr<MObject> obj(new MObject(bullet, Node, MObject::Type::SHOT, false));
 
     bullet->setUserPointer((void *) (obj.get()));
 
@@ -230,7 +230,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::shoot(btVector3 position, btVec
 }
 
 std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBodyWithTmpShape(IMesh* mesh, btVector3 position, btScalar mass,
-                                                     gg::MObject::Material material,
+                                                     gg::MObject::Type type,
                                                      gg::MeshManipulators::Nef_polyhedron &&poly)
 {
     IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
@@ -252,7 +252,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBodyWithTmpShape
 
     btRigidBody *rigidBody = new btRigidBody(mass, motionState, Shape, localInertia);
 
-    std::unique_ptr<MObject> fragment(new MObject(rigidBody, Node, material, std::move(poly)));
+    std::unique_ptr<MObject> fragment(new MObject(rigidBody, Node, type, std::move(poly)));
     rigidBody->setUserPointer((void *) (fragment.get()));
 
     return std::move(fragment);

@@ -35,7 +35,7 @@ namespace gg
         inline irr::scene::ISceneNode *getNode()
         { return m_irrSceneNode; }
 
-        enum class Material
+        enum class Type
         {
             BUILDING, DEBREE, SHIP, SHOT, GROUND, DUST
         };
@@ -44,8 +44,8 @@ namespace gg
         std::atomic_bool deleted {false};
         std::atomic_int reference_count;
 
-        inline Material getMaterial()
-        { return m_material; }
+        inline Type getType()
+        { return m_type; }
 
         inline bool isEmpty()
         { return m_empty; }
@@ -125,8 +125,8 @@ namespace gg
             reference_count.store(0);
         }
 
-        MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Material mat, bool mesh = true) : m_rigidBody(
-                std::unique_ptr<btRigidBody>(rb)), m_irrSceneNode(sn), m_material(mat), m_isMesh(mesh)
+        MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Type type, bool mesh = true) : m_rigidBody(
+                std::unique_ptr<btRigidBody>(rb)), m_irrSceneNode(sn), m_type(type), m_isMesh(mesh)
         {
             m_empty = m_rigidBody == nullptr;
             m_deleted = false;
@@ -141,8 +141,8 @@ namespace gg
             reference_count.store(0);
         }
 
-        MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Material mat, Nef_polyhedron &&nef) : m_rigidBody(
-                std::unique_ptr<btRigidBody>(rb)), m_irrSceneNode(sn), m_material(mat), m_polyhedron(nef)
+        MObject(btRigidBody *rb, irr::scene::ISceneNode *sn, Type type, Nef_polyhedron &&nef) : m_rigidBody(
+                std::unique_ptr<btRigidBody>(rb)), m_irrSceneNode(sn), m_type(type), m_polyhedron(nef)
         {
             m_empty = m_rigidBody == nullptr;
             m_deleted = false;
@@ -156,7 +156,7 @@ namespace gg
         {
             m_rigidBody = std::move(other.m_rigidBody);
             m_irrSceneNode = other.m_irrSceneNode;
-            m_material = other.m_material;
+            m_type = other.m_type;
             m_deleted = other.m_deleted;
             m_polyhedron = std::move(other.m_polyhedron);
             m_polyhedronTransformation = std::move(other.m_polyhedronTransformation);
@@ -175,7 +175,7 @@ namespace gg
         std::unique_ptr<btRigidBody> m_rigidBody;
         irr::scene::ISceneNode *m_irrSceneNode;
         bool m_empty, m_deleted = false;
-        Material m_material;
+        Type m_type;
         bool m_isMesh = false;
         Nef_polyhedron m_polyhedron;
         irr::core::quaternion m_polyhedronTransformation;
