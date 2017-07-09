@@ -13,30 +13,28 @@ gg::MObjectCreator::MObjectCreator(IrrlichtDevice *irr) : m_irrDevice(irr)
 
 std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&items)
 {
-    if(items.size() != 13)
+    if(items.size() != 10)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
         return nullptr;
     }
 
-    float numbers[10];
-    for(int i = 0; i < 10; i++)
+    float numbers[7];
+    for(int i = 0; i < 7; i++)
     {
         numbers[i] = std::stof(items[i + 3]);
     }
 
     std::string input(items[0]);
     btVector3 position(numbers[0], numbers[1], numbers[2]);
-    core::vector3df rotation(numbers[3], numbers[4], numbers[5]);
-    core::vector3df scale(numbers[6], numbers[7], numbers[8]);
-    const btScalar Mass = numbers[9];
+    core::vector3df scale(numbers[3], numbers[4], numbers[5]);
+    const btScalar Mass = numbers[6];
 
     IMesh *mesh_orig = m_irrDevice->getSceneManager()->getMesh((m_media + input).c_str());
     IMesh *mesh = m_irrDevice->getSceneManager()->getMeshManipulator()->createMeshUniquePrimitives(mesh_orig);
 
     IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh, scale);
-    Node->setRotation(rotation);
 
     MeshManipulators::Nef_polyhedron polyhedron = std::move(MeshManipulators::makeNefPolyhedron(mesh));
 
@@ -78,29 +76,27 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBody(std::vector
 
 std::unique_ptr<gg::MObject> gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string> &&items)
 {
-    if(items.size() != 13)
+    if(items.size() != 10)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
         return nullptr;
     }
 
-    float numbers[10];
-    for(int i = 0; i < 10; i++)
+    float numbers[7];
+    for(int i = 0; i < 7; i++)
     {
         numbers[i] = std::stof(items[i + 3]);
     }
 
     btVector3 position(numbers[0], numbers[1], numbers[2]);
-    core::vector3df rotation(numbers[3], numbers[4], numbers[5]);
-    core::vector3df scale(numbers[6], numbers[7], numbers[8]);
-    const btScalar Mass = numbers[9];
+    core::vector3df scale(numbers[3], numbers[4], numbers[5]);
+    const btScalar Mass = numbers[6];
 
     IMesh *mesh = m_irrDevice->getSceneManager()->getMesh((m_media + items[0]).c_str());
     m_irrDevice->getSceneManager()->getMeshManipulator()->scale(mesh, scale);
     IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
 
 
-    Node->setRotation(rotation);
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_LIGHTING, 1);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
@@ -136,28 +132,26 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createBoxedRigidBody(std::vecto
 
 std::unique_ptr<gg::MObject> gg::MObjectCreator::createSolidGround(std::vector<std::string> &&items)
 {
-    if(items.size() != 13)
+    if(items.size() != 10)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
         return nullptr;
     }
 
-    float numbers[10];
-    for(int i = 0; i < 10; i++)
+    float numbers[7];
+    for(int i = 0; i < 7; i++)
     {
         numbers[i] = std::stof(items[i + 3]);
     }
 
     std::string texture(items[1]);
     btVector3 position(numbers[0], numbers[1], numbers[2]);
-    core::vector3df rotation(numbers[3], numbers[4], numbers[5]);
-    core::vector3df scale(numbers[6], numbers[7], numbers[8]);
-    const btScalar Mass = numbers[9];
+    core::vector3df scale(numbers[3], numbers[4], numbers[5]);
+    const btScalar Mass = numbers[6];
 
     // Create an Irrlicht cube
     scene::ISceneNode *Node = m_irrDevice->getSceneManager()->addCubeSceneNode(1.0f);
     Node->setScale(scale);
-    Node->setRotation(rotation);
     Node->setMaterialFlag(video::EMF_LIGHTING, 1);
     Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
     if(items[1] != "")
