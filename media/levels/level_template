@@ -1,5 +1,0 @@
-skybox up;down;right;left;front;back;
-modelfile;texture;material(I,C,W...);position(3x float);rotation(3x float);scale(3x float);mass(float)
-modelfile;;material(I,C,W...);position(3x float);rotation(3x float);scale(3x float);mass(float)
-...
-(texture parameter is unused except for ship)

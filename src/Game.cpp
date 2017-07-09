@@ -54,7 +54,7 @@ void gg::MGame::run(bool debug, bool gravity)
     m_irrDriver->endScene();
 
     MLoader loader(m_irrDevice.get());
-    m_objects = loader.load("media/levels/3");
+    m_objects = loader.load("media/world");
     for(size_t i = 0; i < m_objects.size(); i++)
     {
         //ship
