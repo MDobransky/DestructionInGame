@@ -13,7 +13,7 @@ gg::MGame::MGame()
 {
     m_events = new MEventReceiver();
     m_done = false;
-    m_velocity = -10;
+    m_velocity = -60;
 
     m_irrDevice.reset(createDevice(video::EDT_OPENGL, dimension2d<u32>(1920, 1080), 32, false, false, false, m_events));
     m_irrGUI = m_irrDevice->getGUIEnvironment();
@@ -232,19 +232,19 @@ void gg::MGame::applyEvents()
 
     if(m_events->keyDown('Z'))
     {
-        m_velocity -= 5;
-        if(m_velocity < -80)
+        m_velocity -= 1;
+        if(m_velocity < -200)
         {
-            m_velocity = -80;
+            m_velocity = -200;
         }
     }
 
     if(m_events->keyDown('X'))
     {
-        m_velocity += 5;
-        if(m_velocity >= -20)
+        m_velocity += 1;
+        if(m_velocity >= -60)
         {
-            m_velocity = -20;
+            m_velocity = -60;
         }
     }
 
@@ -281,7 +281,7 @@ void gg::MGame::shoot()
 {
     btVector3 position =
             m_btShip->getCenterOfMassPosition() + m_btShip->getWorldTransform().getBasis() * btVector3(0, -0.1, -0.5);
-    btVector3 impulse = m_btShip->getWorldTransform().getBasis() * btVector3(0, 0, -200);
+    btVector3 impulse = m_btShip->getWorldTransform().getBasis() * btVector3(0, 0, -200 + m_velocity);
     std::unique_ptr<MObject> shot(m_objectCreator->shoot(position, impulse));
     m_btWorld->addRigidBody(shot->getRigid());
     shot->getRigid()->setGravity(btVector3(0, 0, 0));
