@@ -1,4 +1,4 @@
-CXX= g++ -std=c++14 -g
+CXX= g++ -std=c++14 -g -o2
 LD= g++ -std=c++14
 CXXFLAGS= -Wall -pedantic -frounding-math
 INC=-isystem /usr/include/bullet  -isystem /usr/include/irrlicht -isystem /usr/include/bullet/LinearMath -isystem include
@@ -17,10 +17,10 @@ all: $(PROG)
 
 $(BUILDDIR)%.o: %.cpp $(SRCDIR)$(HEADERS) | $(BUILDDIR)
 	@$(CXX) $(CXXFLAGS) $(INC) $< -c -o $@
-	$(info $@ created)
+	$(info $@ compiling)
 	
 $(PROG):  $(OBJS) | $(BUILDDIR)
-	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) hacd.a -o $(PROG)
+	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) lib/hacd.a -o $(PROG)
 	$(info $@ created)
 
 $(BUILDDIR):
