@@ -17,10 +17,6 @@ bool gg::MEventReceiver::OnEvent(const SEvent &event)
         }
         keyState[event.KeyInput.Key] = event.KeyInput.PressedDown;
     }
-    else if (event.GUIEvent.EventType == EGET_ELEMENT_CLOSED)
-    {
-        keyState[irr::KEY_ESCAPE] = event.KeyInput.PressedDown;
-    }
     return false;
 }
 
