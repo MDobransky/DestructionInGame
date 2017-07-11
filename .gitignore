@@ -1,6 +1,6 @@
 build
-Qtbuild
 src/bakalarka.pro.user
 src/cmake*
 src/CMake*
 src/.*
+lib/*
