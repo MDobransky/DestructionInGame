@@ -4,7 +4,7 @@ CXXFLAGS= -Wall -pedantic -frounding-math
 INC=-isystem /usr/include/bullet  -isystem /usr/include/irrlicht -isystem /usr/include/bullet/LinearMath -isystem include
 SRCDIR=src/
 BUILDDIR=build/
-LFLAGS= -L/usr/lib
+LDFLAGS= -L/usr/lib
 LIBS= -lIrrlicht -lBulletSoftBody -lBulletDynamics -lBulletCollision \
     -lLinearMath -lvoro++ -lgmp -lCGAL -lCGAL_Core -lmpfr -lpthread
 
@@ -16,17 +16,14 @@ VPATH=src/
 all: $(PROG)
 
 $(BUILDDIR)%.o: %.cpp $(SRCDIR)$(HEADERS) | $(BUILDDIR)
-	@$(CXX) $(CXXFLAGS) $(INC) $< -c -o $@
-	$(info $@ compiling)
+	$(CXX) $(CXXFLAGS) $(INC) $< -c -o $@
 	
 $(PROG):  $(OBJS) | $(BUILDDIR)
-	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) lib/hacd.a -o $(PROG)
-	$(info $@ created)
+	$(LD) $(LDFLAGS) $(OBJS) $(LIBS) lib/hacd.a -o $(PROG)
+
 
 $(BUILDDIR):
-	@mkdir -p $(BUILDDIR)
-	$(info $@ created)
+	mkdir -p $(BUILDDIR)
 
 clean:
-	@rm -f $(OBJS) $(PROG)
-	$(info Project cleaned)
+	rm -f $(OBJS) $(PROG)
