@@ -41,7 +41,7 @@ gg::MGame::~MGame()
 
 }
 
-void gg::MGame::run(bool debug, bool gravity)
+void gg::MGame::run(bool debug)
 {
 
     ITexture *images = m_irrDriver->getTexture("media/loading.jpg");
@@ -81,7 +81,7 @@ void gg::MGame::run(bool debug, bool gravity)
     debugMat.Lighting = false;
     const bool debug_draw_bullet = debug;
 
-    m_btWorld->setGravity(btVector3(0, gravity ? -9 : 0, 0));
+    m_btWorld->setGravity(btVector3(0, -9, 0));
     m_btShip->setGravity(btVector3(0, 0, 0));
     createStartScene();
 

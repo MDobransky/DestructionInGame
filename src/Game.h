@@ -21,7 +21,7 @@ namespace gg
     class MGame
     {
     public:
-        void run(bool debug, bool gravity);
+        void run(bool debug);
 
         ~MGame();
 

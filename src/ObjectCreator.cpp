@@ -13,7 +13,7 @@ gg::MObjectCreator::MObjectCreator(IrrlichtDevice *irr) : m_irrDevice(irr)
 
 std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBody(std::vector<std::string> &&items)
 {
-    if(items.size() != 10)
+    if(items.size() != 9)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
         return nullptr;
@@ -22,7 +22,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBody(std::vector
     float numbers[7];
     for(int i = 0; i < 7; i++)
     {
-        numbers[i] = std::stof(items[i + 3]);
+        numbers[i] = std::stof(items[i + 2]);
     }
 
     std::string input(items[0]);
@@ -76,7 +76,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBody(std::vector
 
 std::unique_ptr<gg::MObject> gg::MObjectCreator::createBoxedRigidBody(std::vector<std::string> &&items)
 {
-    if(items.size() != 10)
+    if(items.size() != 9)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
         return nullptr;
@@ -85,7 +85,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createBoxedRigidBody(std::vecto
     float numbers[7];
     for(int i = 0; i < 7; i++)
     {
-        numbers[i] = std::stof(items[i + 3]);
+        numbers[i] = std::stof(items[i + 2]);
     }
 
     btVector3 position(numbers[0], numbers[1], numbers[2]);
@@ -132,7 +132,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createBoxedRigidBody(std::vecto
 
 std::unique_ptr<gg::MObject> gg::MObjectCreator::createSolidGround(std::vector<std::string> &&items)
 {
-    if(items.size() != 10)
+    if(items.size() != 9)
     {
         std::cerr << "Object failed to load: wrong number of parameters\n";
         return nullptr;
@@ -141,7 +141,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createSolidGround(std::vector<s
     float numbers[7];
     for(int i = 0; i < 7; i++)
     {
-        numbers[i] = std::stof(items[i + 3]);
+        numbers[i] = std::stof(items[i + 2]);
     }
 
     std::string texture(items[1]);
