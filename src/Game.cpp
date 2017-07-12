@@ -54,7 +54,7 @@ void gg::MGame::run(bool debug)
     m_irrDriver->endScene();
 
     MLoader loader(m_irrDevice.get());
-    m_objects = loader.load("media/world");
+    m_objects = loader.load("media/world.cfg");
     for(size_t i = 0; i < m_objects.size(); i++)
     {
         //ship
