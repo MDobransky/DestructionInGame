@@ -34,6 +34,9 @@ gg::MCollisionResolver::MCollisionResolver(IrrlichtDevice* irrDev, btDiscreteDyn
     m_done.store(false);
     m_subtractor = std::move(std::thread([this] { meshSubtractor(); }));
     m_decomposer = std::move(std::thread([this] { meshDecomposer(); }));
+    m_file_subtraction.open("data/subtraction.times");
+    m_file_decomposition.open("data/decomposition.times");
+    m_file_total.open("data/total.times");
 }
 
 gg::MCollisionResolver::~MCollisionResolver()
@@ -93,6 +96,7 @@ void gg::MCollisionResolver::resolveCollision(MObject* obj, btVector3 point,
             std::lock_guard<std::mutex> lock (m_subtractionTasksMutex);
             vector3df relative_position(vector3df(point.x(),point.y(),point.z()) - obj->getNode()->getPosition());
             obj->reference_count++;
+            obj->m_timer.reset();
             m_subtractionTasks.push_back(std::make_tuple(obj, debree_mesh, relative_position));
             m_subtractionCondVar.notify_one();
         }
@@ -119,7 +123,7 @@ void gg::MCollisionResolver::meshSubtractor()
             if(obj->deleted)
             {
                 return;
-            }
+            }      
             int old_version = obj->version.load();
             try
             {
@@ -128,12 +132,13 @@ void gg::MCollisionResolver::meshSubtractor()
                 position = quat * position;
                 quat = obj->getPolyhedronTransform();
                 position = quat.makeInverse() * position + obj->translation;
-
+                Timer t;
                 MeshManipulators::Nef_polyhedron newPoly, debree;
                 {
                     std::lock_guard<std::mutex> objlock(obj->m_mutex);
                     std::tie(newPoly, debree) = MeshManipulators::subtractMesh(obj->getPolyhedron(), mesh, position);
                 }
+
                 std::vector<MeshManipulators::Nef_polyhedron> newNefPolyhedrons(std::move(MeshManipulators::splitPolyhedron(std::move(newPoly))));
                 std::vector<MeshManipulators::Nef_polyhedron> debreeVector(std::move(MeshManipulators::splitPolyhedron(std::move(debree))));
                 newNefPolyhedrons.insert(newNefPolyhedrons.end(), debreeVector.begin(), debreeVector.end());
@@ -170,6 +175,7 @@ void gg::MCollisionResolver::meshSubtractor()
                                                 old_version));
                     }
                 }
+                m_file_subtraction << t.elapsed() << "\n";
             }
             catch(...)
             {
@@ -194,10 +200,12 @@ void gg::MCollisionResolver::meshDecomposer()
             std::tie(obj, mesh) = m_decompositionTasks.front();
             m_decompositionTasks.pop();
             taskLock.unlock();
+            gg::Timer t;
             btCollisionShape *shape = new btHACDCompoundShape(MeshManipulators::convertMesh(mesh));
             shape->setMargin(0.01f);
             std::lock_guard<std::mutex> resLock(m_decompositionResultsMutex);
             m_decompositionResults.push(std::make_tuple(obj, shape));
+            m_file_decomposition << t.elapsed() << "\n";
         }
     }
 }
@@ -213,52 +221,53 @@ void gg::MCollisionResolver::subtractionApplier()
     MeshManipulators::Nef_polyhedron newPoly;
     {
         std::lock_guard<std::mutex> resLock(m_subtractionResultsMutex);
-        if(m_subtractionResults.size() > 0)
+        while(m_subtractionResults.size() > 0)
         {
             std::tie(obj, position, rotation, newPoly, new_mesh, old_version) = m_subtractionResults.front();
             m_subtractionResults.pop();
+            if(obj && new_mesh)
+            {
+                if(obj->version > old_version)
+                {
+                    return;
+                }
+                {
+                    std::lock_guard<std::mutex> objLock(obj->m_mutex);
+                    obj->setPolyhedron(std::move(newPoly));
+                }
+                if(obj->getRigid())
+                {
+                    IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
+                    Node->setMesh(new_mesh);
+                    Node->setMaterialType(EMT_SOLID);
+                    Node->setMaterialFlag(EMF_LIGHTING, 0);
+                    Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+                    obj->version++;
+                }
+                else
+                {
+                    std::unique_ptr<MObject> object(m_objectCreator->createMeshRigidBodyWithTmpShape(new_mesh, position, 10, obj->getType(), std::move(newPoly)));
+                    object->reference_count.store(obj->reference_count);
+                    object->translation = obj->translation;
+                    delete obj;
+                    obj = object.get();
+                    btTransform tr(rotation);
+                    tr.setOrigin(position);
+                    obj->getRigid()->setWorldTransform(tr);
+                    m_objects->push_back(std::move(object));
+                    m_btWorld->addRigidBody(obj->getRigid());
+                }
+                std::unique_lock<std::mutex> taskLock(m_decompositionTasksMutex);
+                m_decompositionTasks.push(std::make_tuple(obj, new_mesh));
+                m_decompositionCondVar.notify_one();
+            }
+            else if (obj)
+            {
+                obj->deleted = true;
+            }
         }
     }
-    if(obj && new_mesh)
-    {
-        if(obj->version > old_version)
-        {
-            return;
-        }
-        {
-            std::lock_guard<std::mutex> objLock(obj->m_mutex);
-            obj->setPolyhedron(std::move(newPoly));
-        }
-        if(obj->getRigid())
-        {
-            IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
-            Node->setMesh(new_mesh);
-            Node->setMaterialType(EMT_SOLID);
-            Node->setMaterialFlag(EMF_LIGHTING, 0);
-            Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
-            obj->version++;
-        }
-        else
-        {
-            std::unique_ptr<MObject> object(m_objectCreator->createMeshRigidBodyWithTmpShape(new_mesh, position, 10, obj->getType(), std::move(newPoly)));
-            object->reference_count.store(obj->reference_count);
-            object->translation = obj->translation;
-            delete obj;
-            obj = object.get();
-            btTransform tr(rotation);
-            tr.setOrigin(position);
-            obj->getRigid()->setWorldTransform(tr);
-            m_objects->push_back(std::move(object));
-            m_btWorld->addRigidBody(obj->getRigid());
-        }
-        std::unique_lock<std::mutex> taskLock(m_decompositionTasksMutex);
-        m_decompositionTasks.push(std::make_tuple(obj, new_mesh));
-        m_decompositionCondVar.notify_one();
-    }
-    else if (obj)
-    {
-        obj->deleted = true;
-    }
+
 }
 
 void gg::MCollisionResolver::decompositionApplier()
@@ -275,6 +284,7 @@ void gg::MCollisionResolver::decompositionApplier()
             delete obj->getRigid()->getCollisionShape();
             obj->getRigid()->setCollisionShape(new_shape);
             obj->reference_count--;
+            m_file_total << obj->m_timer.elapsed() << "\n";
         }
     }
 }

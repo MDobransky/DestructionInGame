@@ -21,6 +21,28 @@
 namespace gg
 {
 
+    //for taking experimental measurements
+    class Timer
+    {
+    public:
+        Timer() : beg_(clock_::now()) {}
+
+        void reset()
+        {
+            beg_ = clock_::now();
+        }
+
+        double elapsed() const
+        {
+            return std::chrono::duration_cast<second_>(clock_::now() - beg_).count();
+        }
+
+    private:
+        typedef std::chrono::high_resolution_clock clock_;
+        typedef std::chrono::duration<double, std::ratio<1> > second_;
+        std::chrono::time_point<clock_> beg_;
+    };
+
     class MObject
     {
         typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
@@ -171,6 +193,8 @@ namespace gg
 
         MObject &operator=(const MObject &) = delete;
 
+        Timer m_timer;
+
     private:
         std::unique_ptr<btRigidBody> m_rigidBody;
         irr::scene::ISceneNode *m_irrSceneNode;
@@ -180,6 +204,9 @@ namespace gg
         Nef_polyhedron m_polyhedron;
         irr::core::quaternion m_polyhedronTransformation;
     };
+
+
+
 
 }
 #endif

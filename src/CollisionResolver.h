@@ -20,7 +20,8 @@
 #include <atomic>
 #include <queue>
 #include <condition_variable>
-
+#include <fstream>
+#include <iostream>
 
 namespace gg
 {
@@ -66,7 +67,13 @@ namespace gg
         std::thread m_subtractor;
         std::thread m_decomposer;
         std::atomic<bool> m_done;
+
+        std::ofstream m_file_subtraction;
+        std::ofstream m_file_decomposition;
+        std::ofstream m_file_total;
     };
+
+
 
 }
 
