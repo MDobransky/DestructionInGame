@@ -1,4 +1,4 @@
-CXX= g++ -std=c++14 -g -o2
+CXX= g++ -std=c++14 -g -O2
 LD= g++ -std=c++14
 CXXFLAGS= -Wall -pedantic -frounding-math
 INC=-isystem ../../include
