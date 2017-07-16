@@ -242,6 +242,7 @@ void gg::MCollisionResolver::subtractionApplier()
                     Node->setMaterialType(EMT_SOLID);
                     Node->setMaterialFlag(EMF_LIGHTING, 1);
                     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+                    Node->setAutomaticCulling(irr::scene::EAC_OFF);
                     obj->version++;
                 }
                 else

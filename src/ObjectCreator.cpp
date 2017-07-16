@@ -45,6 +45,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBody(std::vector
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_LIGHTING, 1);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+    Node->setAutomaticCulling(irr::scene::EAC_OFF);
 
     // Set the initial position of the object
     btTransform Transform;
@@ -232,6 +233,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBodyWithTmpShape
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_LIGHTING, 1);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
+    Node->setAutomaticCulling(irr::scene::EAC_OFF);
 
     btTransform Transform;
     Transform.setIdentity();
