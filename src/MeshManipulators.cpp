@@ -43,7 +43,7 @@ std::tuple<IMesh *, vector3df> gg::MeshManipulators::convertPolyToMesh(gg::MeshM
         double a = CGAL::to_double(p->x());
         double b = CGAL::to_double(p->y());
         double c = CGAL::to_double(p->z());
-        buf->Vertices[i] = S3DVertex(a, b, c, a, b, c, video::SColor(255, rand() % 256, rand() % 256, rand() % 256), 0,
+        buf->Vertices[i] = S3DVertex(a, b, c, a, b, c, video::SColor(255, 200, 200, 200), 0,
                                      0);
         vector3df current(a,b,c);
         min = current < min ? current : min;

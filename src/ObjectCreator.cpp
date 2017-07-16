@@ -43,7 +43,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBody(std::vector
     std::tie(mesh, center) = MeshManipulators::convertPolyToMesh(polyhedron);
     Node->setMesh(mesh);
     Node->setMaterialType(EMT_SOLID);
-    Node->setMaterialFlag(EMF_LIGHTING, 0);
+    Node->setMaterialFlag(EMF_LIGHTING, 1);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
     // Set the initial position of the object
@@ -152,7 +152,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createSolidGround(std::vector<s
     // Create an Irrlicht cube
     scene::ISceneNode *Node = m_irrDevice->getSceneManager()->addCubeSceneNode(1.0f);
     Node->setScale(scale);
-    Node->setMaterialFlag(video::EMF_LIGHTING, 1);
+    Node->setMaterialFlag(video::EMF_LIGHTING, 0);
     Node->setMaterialFlag(video::EMF_NORMALIZE_NORMALS, true);
     if(items[1] != "")
     {
@@ -190,7 +190,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createSolidGround(std::vector<s
 std::unique_ptr<gg::MObject> gg::MObjectCreator::shoot(btVector3 position, btVector3 impulse)
 {
     ///bullet size
-    ISceneNode *Node = m_irrDevice->getSceneManager()->addLightSceneNode();
+    ISceneNode *Node = m_irrDevice->getSceneManager()->addLightSceneNode(0, core::vector3df(0, 0, 0), SColorf(255, 0, 0), 0.1);
     Node->setMaterialType(EMT_SOLID);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
@@ -230,7 +230,7 @@ std::unique_ptr<gg::MObject> gg::MObjectCreator::createMeshRigidBodyWithTmpShape
     IMeshSceneNode *Node = m_irrDevice->getSceneManager()->addMeshSceneNode(mesh);
     Node->setPosition(vector3df(position.getX(), position.getY(), position.getZ()));
     Node->setMaterialType(EMT_SOLID);
-    Node->setMaterialFlag(EMF_LIGHTING, 0);
+    Node->setMaterialFlag(EMF_LIGHTING, 1);
     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
 
     btTransform Transform;

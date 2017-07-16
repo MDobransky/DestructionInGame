@@ -240,7 +240,7 @@ void gg::MCollisionResolver::subtractionApplier()
                     IMeshSceneNode* Node = static_cast<IMeshSceneNode*>(obj->getNode());
                     Node->setMesh(new_mesh);
                     Node->setMaterialType(EMT_SOLID);
-                    Node->setMaterialFlag(EMF_LIGHTING, 0);
+                    Node->setMaterialFlag(EMF_LIGHTING, 1);
                     Node->setMaterialFlag(EMF_NORMALIZE_NORMALS, true);
                     obj->version++;
                 }

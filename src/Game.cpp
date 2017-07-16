@@ -132,8 +132,8 @@ void gg::MGame::run(bool debug)
 void gg::MGame::createStartScene()
 {
     // Create the initial scene
-    m_irrScene->addLightSceneNode(0, core::vector3df(0, 7000, 0), SColorf(4, 4, 4, 1), 10000);
-    m_irrScene->setAmbientLight(video::SColorf(0.3, 0.3, 0.3, 1));
+    m_irrScene->addLightSceneNode(0, core::vector3df(0, 400, 100), SColorf(4, 4, 4, 1), 100);
+  //  m_irrScene->setAmbientLight(video::SColorf(0.3, 0.3, 0.3, 1));
 
     //camera
     m_Camera = m_irrScene->addCameraSceneNode();
@@ -242,9 +242,9 @@ void gg::MGame::applyEvents()
     if(m_events->keyDown('X'))
     {
         m_velocity += 1;
-        if(m_velocity >= -60)
+        if(m_velocity >= 0)
         {
-            m_velocity = -60;
+            m_velocity = 0;
         }
     }
 
