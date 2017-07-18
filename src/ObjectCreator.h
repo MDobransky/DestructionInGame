@@ -1,5 +1,6 @@
-//creating object from the level files and models
-//create dirt, buildings and other models, invisible skyboxes, ship, fired shots....
+/* implements the {\tt gg::MObjectCreator} class designed in a Builder pattern
+ * to provide initialization for the data contained inside gg::MObject.
+ */
 
 #ifndef OBJECTCREATOR_H
 #define OBJECTCREATOR_H

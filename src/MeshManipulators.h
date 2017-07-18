@@ -1,3 +1,10 @@
+/*
+ * provides set of utility functions.
+ * Because different libraries are used for physics simulation,
+ * rendering and geometric manipulation, those functions provide means
+ * for converting data between different formats.
+ */
+
 #ifndef MESHMANIPULATORS_H
 #define MESHMANIPULATORS_H
 

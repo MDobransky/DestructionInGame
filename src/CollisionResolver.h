@@ -1,3 +1,9 @@
+/*
+ *  implements the Collision handling process
+ *  Conversions between data formats that are required during the process are externalized
+ *  to Mesh Manipulators module to maintain the code readable.
+ */
+
 #ifndef COLLISIONRESOLVER_H
 #define COLLISIONRESOLVER_H
 
@@ -45,9 +51,9 @@ namespace gg
 
         void meshDecomposer(); //thread
 
-        void subtractionApplier(); //call every loop
+        void subtractionApplier(); // every loop
 
-        void decompositionApplier(); //call every loop
+        void decompositionApplier(); //must be called every loop
 
         irr::IrrlichtDevice *m_irrDevice;
         btDiscreteDynamicsWorld *m_btWorld;

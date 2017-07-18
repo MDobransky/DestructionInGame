@@ -1,3 +1,4 @@
+//module implements the instance of irr::IEventReceiver from Irrlicht engine and it is used to read the user input
 #ifndef EVENTRECEIVER_H
 #define EVENTRECEIVER_H
 

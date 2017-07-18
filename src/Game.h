@@ -1,3 +1,7 @@
+/*
+ * a class which is the core of the application. The communication with the physics engine,
+ * the graphical engine and mesh manipulation parts of the software is managed from here.
+ */
 #ifndef GAME_H
 #define GAME_H
 

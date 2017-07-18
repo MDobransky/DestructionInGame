@@ -1,3 +1,8 @@
+/* is only used for initializing the application.
+ * It parses the data that describe the game environment from the medial/world.cfg file,
+ * constructs the objects using tt gg::MObjectCreator, and returns the set of constructed objects.
+ */
+
 #ifndef LOADER_H
 #define LOADER_H
 
